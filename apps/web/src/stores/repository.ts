@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { FileNode } from "../types";
 import { api } from "../lib/api";
+import { useEditor } from "./editor";
 // Shared in-flight guard so duplicate load() calls share one tree scan.
 let loadInflight: Promise<void> | null = null;
 type S = {
@@ -27,6 +28,7 @@ export const useRepo = create<S>((set, get) => ({
     return loadInflight;
   },
   openRepo: async (p: string) => {
+    useEditor.getState().reset();
     set({ loading: true, error: null });
     try {
       const r = await api.openWorkspace(p);

@@ -8,6 +8,7 @@ type S = {
   setMode: (p: string, m: "code" | "diff") => void;
   setContent: (p: string, c: string, h?: string) => void; markDirty: (p: string, d: boolean) => void;
   setConflict: (c: Conflict) => void; notify: (m: string | null) => void;
+  reset: () => void;
 };
 export const useEditor = create<S>((set) => ({
   openFiles: [], activeFile: null, mode: {}, dirty: {}, contents: {}, diskHash: {}, conflict: null, message: null,
@@ -19,4 +20,5 @@ export const useEditor = create<S>((set) => ({
   markDirty: (p, d) => set((s) => ({ dirty: { ...s.dirty, [p]: d } })),
   setConflict: (c) => set({ conflict: c }),
   notify: (m) => set({ message: m }),
+  reset: () => set({ openFiles: [], activeFile: null, mode: {}, dirty: {}, contents: {}, diskHash: {}, conflict: null, message: null }),
 }));
