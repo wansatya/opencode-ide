@@ -130,6 +130,10 @@ wait_for_url() {
 # Dev-mode server binaries. Invoked directly (not via `npm run dev`) because
 # `tsx watch` registers an inotify watch per file under node_modules and blows
 # past fs.inotify.max_user_watches (ENOSPC) on ordinary machines.
+# Detach daemons into a new session when possible so the caller's shell
+# returns immediately (nohup+redirects alone still leave them in the
+# caller's session, which some environments wait on).
+if command -v setsid >/dev/null 2>&1; then DETACH="setsid"; else DETACH=""; fi
 TSX_BIN="$REPO_DIR/node_modules/.bin/tsx"
 VITE_BIN="$REPO_DIR/node_modules/.bin/vite"
 
@@ -187,7 +191,7 @@ cmd_start() {
   fi
 
   if [ "$prod" -eq 1 ]; then
-    (cd "$REPO_DIR" && COCKPIT_ROOT="$root_env" PORT="$BRIDGE_PORT" nohup npm run start -w apps/bridge >>"$LOG_FILE" 2>&1 < /dev/null & echo $! > "$PID_FILE")
+    (cd "$REPO_DIR" && COCKPIT_ROOT="$root_env" PORT="$BRIDGE_PORT" $DETACH nohup npm run start -w apps/bridge >>"$LOG_FILE" 2>&1 < /dev/null & echo $! > "$PID_FILE")
   else
     if [ ! -x "$TSX_BIN" ] || [ ! -x "$VITE_BIN" ]; then
       echo "Dev binaries missing — installing dependencies first…"
@@ -196,8 +200,8 @@ cmd_start() {
     : > "$PID_FILE"
     # stdin from /dev/null + disown: daemons must not hold the caller's stdio,
     # or the invoking shell (and API tool sessions) won't return.
-    (cd "$REPO_DIR/apps/bridge" && COCKPIT_ROOT="$root_env" PORT="$BRIDGE_PORT" nohup "$TSX_BIN" src/server/index.ts >>"$LOG_FILE" 2>&1 < /dev/null & echo $! >> "$PID_FILE")
-    (cd "$REPO_DIR/apps/web" && nohup "$VITE_BIN" --port "$WEB_PORT" --strictPort >>"$LOG_FILE" 2>&1 < /dev/null & echo $! >> "$PID_FILE")
+    (cd "$REPO_DIR/apps/bridge" && COCKPIT_ROOT="$root_env" PORT="$BRIDGE_PORT" $DETACH nohup "$TSX_BIN" src/server/index.ts >>"$LOG_FILE" 2>&1 < /dev/null & echo $! >> "$PID_FILE")
+    (cd "$REPO_DIR/apps/web" && $DETACH nohup "$VITE_BIN" --port "$WEB_PORT" --strictPort >>"$LOG_FILE" 2>&1 < /dev/null & echo $! >> "$PID_FILE")
   fi
   disown -a 2>/dev/null || true
 

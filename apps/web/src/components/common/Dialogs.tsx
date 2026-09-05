@@ -5,6 +5,7 @@ import { useUI } from "../../stores/ui";
 import { useGit } from "../../stores/git";
 import { api } from "../../lib/api";
 import { useTerm } from "../../stores/terminal";
+import { getFileIcon } from "../repository/fileIcons";
 export function RepositoryPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [p, setP] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -39,37 +40,37 @@ export function RepositoryPicker({ open, onClose }: { open: boolean; onClose: ()
   };
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#101623] border border-[#232d45] rounded-lg p-5 w-[520px] max-h-[80vh] flex flex-col">
-        <h2 className="font-semibold mb-1">Open Repository</h2>
-        <p className="text-xs text-gray-400 mb-3">Type a path or browse folders, then Open.</p>
+      <div className="bg-[#231a14] border border-[#36281e] rounded-lg p-5 w-[520px] max-h-[80vh] flex flex-col text-[#ece1d8] shadow-2xl">
+        <h2 className="font-semibold mb-1 text-amber-200">Open Repository</h2>
+        <p className="text-xs text-[#9e8b7d] mb-3">Type a path or browse folders, then Open.</p>
         <div className="flex gap-2 mb-2">
           <input autoFocus value={p} disabled={opening} onChange={(e) => setP(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
             placeholder="/home/user/projects/my-app"
-            className="flex-1 px-2 py-1.5 rounded bg-[#0b0e14] border border-[#232d45] text-sm disabled:opacity-60" />
-          <button onClick={() => nav(p)} disabled={opening} title="Go to typed path" className="px-3 py-1.5 text-sm rounded bg-[#1a2233] hover:bg-[#232d45] disabled:opacity-40">Go</button>
+            className="flex-1 px-2 py-1.5 rounded bg-[#140f0c] border border-[#36281e] text-sm text-[#ece1d8] outline-none focus:border-[#d97706] disabled:opacity-60" />
+          <button onClick={() => nav(p)} disabled={opening} title="Go to typed path" className="px-3 py-1.5 text-sm rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] disabled:opacity-40">Go</button>
         </div>
         <div className="flex items-center gap-1 mb-1">
-          <button disabled={!parent} onClick={() => parent && nav(parent)} title="Up" className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-[#1a2233] hover:bg-[#232d45] disabled:opacity-40"><CornerLeftUp size={13} />Up</button>
-          <button onClick={() => nav(home)} title="Home" className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-[#1a2233] hover:bg-[#232d45]"><House size={13} />Home</button>
-          <span className="text-xs text-gray-500 truncate ml-1">{cur ?? (loading ? "Loading…" : "")}</span>
+          <button disabled={!parent} onClick={() => parent && nav(parent)} title="Up" className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] disabled:opacity-40"><CornerLeftUp size={13} />Up</button>
+          <button onClick={() => nav(home)} title="Home" className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]"><House size={13} />Home</button>
+          <span className="text-xs text-[#9e8b7d] truncate ml-1">{cur ?? (loading ? "Loading…" : "")}</span>
         </div>
-        <div className="overflow-y-auto rounded border border-[#232d45] bg-[#0b0e14] min-h-[180px] max-h-[320px] mb-2">
+        <div className="overflow-y-auto rounded border border-[#36281e] bg-[#140f0c] min-h-[180px] max-h-[320px] mb-2">
           {entries.map((e) => (
             <button key={e.path} onDoubleClick={() => nav(e.path)} onClick={() => { setP(e.path); }}
               onKeyDown={(ev) => { if (ev.key === "Enter") nav(e.path); }}
-              className={`flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm hover:bg-[#1a2233] ${p === e.path ? "bg-[#1d2a45] text-white" : ""}`}>
-              <Folder size={14} className="shrink-0 text-gray-500" />{e.name}
+              className={`flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm hover:bg-[#281f18] ${p === e.path ? "bg-[#453225] text-amber-100 font-medium" : "text-[#c2ab99]"}`}>
+              <Folder size={14} className="shrink-0 text-[#9e8b7d]" />{e.name}
             </button>
           ))}
-          {!loading && entries.length === 0 && <div className="px-3 py-4 text-xs text-gray-500">No subfolders. Click Open to use this folder.</div>}
-          {loading && <div className="px-3 py-4 text-xs text-gray-500">Loading…</div>}
+          {!loading && entries.length === 0 && <div className="px-3 py-4 text-xs text-[#9e8b7d]">No subfolders. Click Open to use this folder.</div>}
+          {loading && <div className="px-3 py-4 text-xs text-[#9e8b7d]">Loading…</div>}
         </div>
-        <p className="text-[11px] text-gray-600 mb-2">Single-click selects · double-click enters folder.</p>
-        {opening && <div className="flex items-center gap-2 text-xs text-sky-300 mb-2"><Loader2 size={13} className="animate-spin" />Opening repository — scanning files, starting watcher…</div>}
+        <p className="text-[11px] text-[#9e8b7d] mb-2">Single-click selects · double-click enters folder.</p>
+        {opening && <div className="flex items-center gap-2 text-xs text-amber-300 mb-2"><Loader2 size={13} className="animate-spin" />Opening repository — scanning files, starting watcher…</div>}
         {err && <div className="text-xs text-red-400 mb-2">{err}</div>}
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} disabled={opening} className="px-3 py-1.5 text-sm rounded bg-[#1a2233] disabled:opacity-40">Cancel</button>
-          <button onClick={submit} disabled={opening || !p} className="flex items-center gap-2 px-3 py-1.5 text-sm rounded bg-sky-700 hover:bg-sky-600 disabled:opacity-60">
+          <button onClick={onClose} disabled={opening} className="px-3 py-1.5 text-sm rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] disabled:opacity-40">Cancel</button>
+          <button onClick={submit} disabled={opening || !p} className="flex items-center gap-2 px-3 py-1.5 text-sm rounded bg-amber-700 hover:bg-amber-600 text-white font-medium disabled:opacity-60">
             {opening && <Loader2 size={14} className="animate-spin" />}{opening ? "Opening…" : "Open"}
           </button>
         </div>
@@ -86,12 +87,21 @@ export function QuickOpen() {
   useEffect(() => setQ(""), [quickOpen]);
   if (!quickOpen) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center pt-24" onClick={() => setQuickOpen(false)}>
-      <div className="bg-[#101623] border border-[#232d45] rounded-lg w-[520px] h-fit overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center pt-24" onClick={() => setQuickOpen(false)}>
+      <div className="bg-[#231a14] border border-[#36281e] rounded-lg w-[520px] h-fit overflow-hidden text-[#ece1d8] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <input autoFocus placeholder="Search files..." value={q} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && hits[0]) { useRepo.getState().select(hits[0]); setQuickOpen(false); } if (e.key === "Escape") setQuickOpen(false); }}
-          className="w-full px-3 py-2 bg-transparent text-sm outline-none border-b border-[#232d45]" />
-        {hits.map((h) => <button key={h} onClick={() => { useRepo.getState().select(h); setQuickOpen(false); }} className="block w-full text-left px-3 py-1.5 text-sm hover:bg-[#1a2233]">{h}</button>)}
+          className="w-full px-3 py-2 bg-[#140f0c] text-sm text-[#ece1d8] outline-none border-b border-[#36281e]" />
+        {hits.map((h) => {
+          const base = h.split("/").pop() ?? h;
+          const { Icon, className } = getFileIcon(base);
+          return (
+            <button key={h} onClick={() => { useRepo.getState().select(h); setQuickOpen(false); }} className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-sm text-[#c2ab99] hover:bg-[#281f18] hover:text-[#ece1d8]">
+              <Icon size={14} className={`${className} shrink-0`} />
+              <span className="truncate">{h}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -108,9 +118,9 @@ export function CommandPalette() {
     ["Stop OpenCode", () => api.ocStop()],
   ];
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center pt-24" onClick={() => setPalette(false)}>
-      <div className="bg-[#101623] border border-[#232d45] rounded-lg w-[520px] h-fit overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        {cmds.map(([n, fn]) => <button key={n} onClick={() => { fn(); setPalette(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-[#1a2233]">{n}</button>)}
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center pt-24" onClick={() => setPalette(false)}>
+      <div className="bg-[#231a14] border border-[#36281e] rounded-lg w-[520px] h-fit overflow-hidden text-[#ece1d8] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        {cmds.map(([n, fn]) => <button key={n} onClick={() => { fn(); setPalette(false); }} className="block w-full text-left px-3 py-2 text-sm text-[#c2ab99] hover:bg-[#281f18] hover:text-[#ece1d8]">{n}</button>)}
       </div>
     </div>
   );

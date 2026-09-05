@@ -41,7 +41,7 @@ export default function TerminalPanel() {
         const p = fitRef.current?.proposeDimensions();
         if (p && p.cols > 2 && p.rows > 1) return p;
       }
-    } catch {}
+    } catch { }
     return { cols: termRef.current?.cols ?? 120, rows: termRef.current?.rows ?? 30 };
   };
 
@@ -50,7 +50,7 @@ export default function TerminalPanel() {
     const d = dims();
     try {
       if (wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send(JSON.stringify({ type: "resize", cols: d.cols, rows: d.rows }));
-    } catch {}
+    } catch { }
     void api.ocResize(d.cols, d.rows);
   };
 
@@ -89,10 +89,10 @@ export default function TerminalPanel() {
 
   const restart = async () => {
     if (startingRef.current) return;
-    try { await api.ocStop(); } catch {}
+    try { await api.ocStop(); } catch { }
     if (!disposedRef.current) {
       set("exited");
-      try { termRef.current?.clear(); } catch {}
+      try { termRef.current?.clear(); } catch { }
       termRef.current?.writeln("\x1b[90mSwitching repository — restarting opencode…\x1b[0m");
     }
     await start(false);
@@ -104,7 +104,35 @@ export default function TerminalPanel() {
     if (!el) return;
     // StrictMode remounts on the same div: clear stale xterm DOM first.
     el.innerHTML = "";
-    const term = new Terminal({ fontSize: 13, theme: { background: "#0b0e14" }, scrollback: 5000, cursorBlink: true, allowProposedApi: false });
+    const term = new Terminal({
+      fontSize: 13,
+      theme: {
+        background: "#140f0c",
+        foreground: "#ece1d8",
+        cursor: "#f59e0b",
+        cursorAccent: "#140f0c",
+        selectionBackground: "#4a3627",
+        black: "#231a14",
+        red: "#ef5350",
+        green: "#4caf50",
+        yellow: "#f59e0b",
+        blue: "#c87a32",
+        magenta: "#d3709c",
+        cyan: "#5eb3a6",
+        white: "#ece1d8",
+        brightBlack: "#5c4b3e",
+        brightRed: "#f27370",
+        brightGreen: "#66bb6a",
+        brightYellow: "#fbbf24",
+        brightBlue: "#e58e26",
+        brightMagenta: "#e082b2",
+        brightCyan: "#76c7c0",
+        brightWhite: "#ffffff",
+      },
+      scrollback: 5000,
+      cursorBlink: true,
+      allowProposedApi: false,
+    });
     const fit = new FitAddon();
     fitRef.current = fit;
     term.loadAddon(fit);
@@ -112,7 +140,7 @@ export default function TerminalPanel() {
     termRef.current = term;
     const write = (data: string | Uint8Array) => {
       if (disposedRef.current || !termRef.current) return;
-      try { term.write(data); } catch {}
+      try { term.write(data); } catch { }
     };
     // Wait a frame so flex layout settles before first fit (0-size fit
     // corrupts the viewport and crashes later in syncScrollArea).
@@ -120,7 +148,7 @@ export default function TerminalPanel() {
     raf = requestAnimationFrame(() => {
       if (disposedRef.current) return;
       safeFit();
-      try { term.focus(); } catch {}
+      try { term.focus(); } catch { }
       onResize();
     });
     const wsUrlStr = wsUrl("/api/opencode/terminal");
@@ -143,7 +171,7 @@ export default function TerminalPanel() {
       };
       // Swallow errors: a failed upgrade (bridge down) must not throw
       // unhandled; onclose below schedules a retry.
-      ws.onerror = () => {};
+      ws.onerror = () => { };
       ws.onopen = () => { retry = 0; };
       ws.onclose = () => {
         if (disposedRef.current) return;
@@ -159,7 +187,7 @@ export default function TerminalPanel() {
       if (disposedRef.current) return;
       const ws = wsRef.current;
       if (ws && ws.readyState === WebSocket.OPEN) {
-        try { ws.send(JSON.stringify({ type: "input", data: d })); } catch {}
+        try { ws.send(JSON.stringify({ type: "input", data: d })); } catch { }
       }
     });
     // Binary/keyboard reports (e.g. Kitty-enhanced keys, paste with high
@@ -168,7 +196,7 @@ export default function TerminalPanel() {
       if (disposedRef.current) return;
       const ws = wsRef.current;
       if (ws && ws.readyState === WebSocket.OPEN) {
-        try { ws.send(JSON.stringify({ type: "input", data: d })); } catch {}
+        try { ws.send(JSON.stringify({ type: "input", data: d })); } catch { }
       }
     });
     let roT = 0;
@@ -182,7 +210,7 @@ export default function TerminalPanel() {
           if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "resize", cols: d.cols, rows: d.rows }));
           void api.ocResize(d.cols, d.rows);
         }
-      } catch {}
+      } catch { }
     };
     const onResizeThrottled = () => {
       if (disposedRef.current) return;
@@ -194,7 +222,7 @@ export default function TerminalPanel() {
     ro.observe(el);
     const t1 = setTimeout(() => { if (!disposedRef.current) onResize(); }, 150);
     const t2 = setTimeout(() => { if (!disposedRef.current) onResize(); }, 500);
-    api.ocCheck().then((c) => { if (!disposedRef.current) setCheck(c.found, c.path); }).catch(() => {});
+    api.ocCheck().then((c) => { if (!disposedRef.current) setCheck(c.found, c.path); }).catch(() => { });
     api.ocStatus().then((s) => {
       if (disposedRef.current) return;
       if (s.state === "running") { set("connected"); setTimeout(() => { if (!disposedRef.current) onResize(); }, 100); }
@@ -205,7 +233,7 @@ export default function TerminalPanel() {
     window.addEventListener("cockpit:opencode-autostart", auto);
     const doRestart = () => void restart();
     window.addEventListener("cockpit:opencode-restart", doRestart);
-    const focus = () => { if (!disposedRef.current) { try { term.focus(); } catch {} } };
+    const focus = () => { if (!disposedRef.current) { try { term.focus(); } catch { } } };
     el.addEventListener("click", focus);
     return () => {
       disposedRef.current = true;
@@ -217,8 +245,8 @@ export default function TerminalPanel() {
       if (roT) clearTimeout(roT);
       cancelAnimationFrame(raf);
       clearTimeout(t1); clearTimeout(t2);
-      try { dataDisp.dispose(); } catch {}
-      try { binDisp.dispose(); } catch {}
+      try { dataDisp.dispose(); } catch { }
+      try { binDisp.dispose(); } catch { }
       if (retryT) clearTimeout(retryT);
       // Detach handlers first; closing a CONNECTING socket logs
       // "closed before the connection is established", so only close
@@ -232,9 +260,9 @@ export default function TerminalPanel() {
         ws.onopen = null;
         try {
           if (ws.readyState === WebSocket.OPEN) ws.close();
-        } catch {}
+        } catch { }
       }
-      try { term.dispose(); } catch {}
+      try { term.dispose(); } catch { }
       termRef.current = null;
       fitRef.current = null;
     };
@@ -247,33 +275,33 @@ export default function TerminalPanel() {
     if (isRunning(state)) {
       safeFit();
       setTimeout(() => { if (!disposedRef.current) sendResize(); }, 50);
-      try { termRef.current?.focus(); } catch {}
+      try { termRef.current?.focus(); } catch { }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const stop = async () => { try { await api.ocStop(); } catch {} set("exited"); };
+  const stop = async () => { try { await api.ocStop(); } catch { } set("exited"); };
 
   const running = isRunning(state);
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-2 h-9 border-b border-[#1c2230] bg-[#0e131c] text-xs shrink-0">
-        <span className="uppercase tracking-wide text-gray-500">OpenCode</span>
-        <span className="text-gray-400">{state}{bin ? ` · ${bin.split("/").pop()}` : ""}</span>
-        <div className="flex-1" />
+    <div className="h-full flex flex-col bg-[#140f0c]">
+      <div className="flex items-center gap-2 px-2 h-9 border-b border-[#36281e] bg-[#231a14] text-xs shrink-0">
+        <span className="uppercase tracking-wide text-[#9e8b7d] font-medium">OpenCode</span>
+        <span className="text-[#c2ab99]">{state}{bin ? ` · ${bin.split("/").pop()}` : ""}</span>
+        <div className="flex-1 px-2" />
         {running ? (
-          <button onClick={stop} className="flex items-center gap-1 px-2 py-1 rounded bg-[#2a1620] hover:bg-[#3a1e2c]"><Square size={12} />Stop</button>
+          <button onClick={stop} className="flex items-center gap-1 px-2 py-1 rounded bg-[#3a1b18] hover:bg-[#4a2424] text-red-200 border border-red-500/30"><Square size={12} />Stop</button>
         ) : (
-          <button onClick={() => start(false)} disabled={state === "starting"} className="flex items-center gap-1 px-2 py-1 rounded bg-[#16281d] hover:bg-[#1e3828] disabled:opacity-50"><Play size={12} />{state === "starting" ? "Starting…" : "Start"}</button>
+          <button onClick={() => start(false)} disabled={state === "starting"} className="flex items-center gap-1 px-2 py-1 rounded bg-[#1b3a20] hover:bg-[#244a2b] text-emerald-200 border border-emerald-500/30 disabled:opacity-50"><Play size={12} />{state === "starting" ? "Starting…" : "Start"}</button>
         )}
       </div>
       {state === "error" && error && (
-        <div className="px-2 py-1.5 text-xs bg-[#2a1620] border-b border-red-500/40 text-red-200 shrink-0">{error}</div>
+        <div className="px-2 py-1.5 text-xs bg-[#3a1b18] border-b border-red-500/40 text-red-200 shrink-0">{error}</div>
       )}
       {found === false && state !== "starting" && (
-        <div className="px-2 py-1.5 text-xs bg-[#2a2116] border-b border-yellow-500/40 text-yellow-200 shrink-0">{INSTALL_MSG}</div>
+        <div className="px-2 py-1.5 text-xs bg-[#382b1c] border-b border-amber-500/40 text-amber-200 shrink-0">{INSTALL_MSG}</div>
       )}
-      <div ref={ref} className="flex-1 min-h-0" />
+      <div ref={ref} className="flex-1 min-h-0 bg-[#140f0c]" />
     </div>
   );
 }

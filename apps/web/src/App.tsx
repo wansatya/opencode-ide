@@ -91,17 +91,17 @@ export default function App() {
     <div className="h-full flex flex-col">
       <TopBar onOpen={() => setPicker(true)} />
       <div className="flex-1 flex min-h-0">
-        {showLeft && <div style={{ width: leftW }} className="border-r border-[#1c2230] bg-[#0d121b] shrink-0 overflow-hidden"><RepositoryPanel /></div>}
-        <div onMouseDown={() => (drag.current = "l")} className="w-1 cursor-col-resize hover:bg-sky-700 shrink-0" />
-        <div className="flex-1 min-w-[400px] min-h-0 bg-[#0b0e14] relative"><EditorPanel /></div>
-        <div onMouseDown={() => (drag.current = "r")} className="w-1 cursor-col-resize hover:bg-sky-700 shrink-0" />
-        {showRight && <div style={{ width: rightW }} className="border-l border-[#1c2230] bg-[#0b0e14] shrink-0 min-h-0"><TerminalPanel /></div>}
+        {showLeft && <div style={{ width: leftW }} className="border-r border-[#36281e] bg-[#1a130f] shrink-0 overflow-hidden"><RepositoryPanel /></div>}
+        <div onMouseDown={() => (drag.current = "l")} className="w-1 cursor-col-resize hover:bg-[#d97706] shrink-0" />
+        <div className="flex-1 min-w-[400px] min-h-0 bg-[#140f0c] relative"><EditorPanel /></div>
+        <div onMouseDown={() => (drag.current = "r")} className="w-1 cursor-col-resize hover:bg-[#d97706] shrink-0" />
+        {showRight && <div style={{ width: rightW }} className="border-l border-[#36281e] bg-[#140f0c] shrink-0 min-h-0"><TerminalPanel /></div>}
       </div>
       <StatusBar />
       <RepositoryPicker open={picker} onClose={() => setPicker(false)} />
       <QuickOpen />
       <CommandPalette />
-      {msg && <div className="fixed bottom-10 left-1/2 -translate-x-1/2 text-xs bg-[#2a1620] border border-red-500/40 rounded px-3 py-2 z-50">{msg}<button className="ml-2 underline" onClick={() => useEditor.getState().notify(null)}>dismiss</button></div>}
+      {msg && <div className="fixed bottom-10 left-1/2 -translate-x-1/2 text-xs bg-[#3a1b18] border border-red-500/50 text-red-200 rounded px-3 py-2 z-50">{msg}<button className="ml-2 underline hover:text-white" onClick={() => useEditor.getState().notify(null)}>dismiss</button></div>}
     </div>
   );
 }
