@@ -160,6 +160,8 @@ cmd_start() {
       echo "Not a directory: $target" >&2; return 1
     fi
     root_env="$(cd "$target" && pwd)"
+  else
+    root_env="$(pwd)"
   fi
 
   if [ "$prod" -eq 1 ]; then
