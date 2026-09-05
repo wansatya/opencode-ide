@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # OpenCode Cockpit installer — curl-pipeable:
-#   curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/wansatya/opencode-ide/main/install.sh | bash
 # Or with options (note the `-s --` passthrough):
 #   curl -fsSL .../install.sh | bash -s -- --dir ~/cockpit --no-build
 #
@@ -74,6 +74,16 @@ fi
 
 echo "Installing dependencies…"
 (cd "$INSTALL_DIR" && npm install)
+
+# Guard: the checkout must contain the launcher (older clones predate
+# bin/cockpit, which used to be git-ignored). Fail here with a clear message
+# instead of a cryptic chmod/ln error later.
+if [ ! -f "$INSTALL_DIR/bin/cockpit" ]; then
+  echo "Error: $INSTALL_DIR/bin/cockpit not found." >&2
+  echo "Your checkout is outdated (or cloned from a repo/branch without it)." >&2
+  echo "Fix: cd $INSTALL_DIR && git pull && re-run this installer." >&2
+  exit 1
+fi
 
 if [ "$WITH_BUILD" -eq 1 ]; then
   echo "Building web + bridge…"

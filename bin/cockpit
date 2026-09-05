@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+# cockpit — launcher for OpenCode Cockpit.
+#   cockpit start [path] [--prod] [--no-browser] [--foreground]
+#   cockpit stop | cockpit status | cockpit logs [-f]
+set -euo pipefail
+
+VERSION="0.1.0"
+WEB_PORT=5173
+BRIDGE_PORT=3101
+
+# Resolve the repo checkout this script lives in (follows symlinks, so it
+# works when installed as ~/.local/bin/cockpit -> <repo>/bin/cockpit).
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$(dirname "${BASH_SOURCE[0]}")/$SOURCE"
+done
+REPO_DIR="$(cd "$(dirname "$SOURCE")/.." && pwd)"
+RUNTIME_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/opencode-cockpit"
+mkdir -p "$RUNTIME_DIR"
+LOG_FILE="$RUNTIME_DIR/cockpit.log"
+PID_FILE="$RUNTIME_DIR/cockpit.pid"
+
+usage() {
+  cat <<EOF
+cockpit $VERSION — OpenCode Cockpit launcher
+
+Usage:
+  cockpit start [path] [options]   Kill stale servers, start cockpit, open browser
+  cockpit stop                      Kill anything on :$WEB_PORT / :$BRIDGE_PORT
+  cockpit status                    Show whether the servers are up
+  cockpit logs [-f]                 Show (and optionally follow) the server log
+
+start options:
+  path            Repo to open in the UI (sets COCKPIT_ROOT for the bridge)
+  --prod          Serve the production build on :$BRIDGE_PORT (needs npm run build)
+                  Default is dev mode: vite on :$WEB_PORT + bridge on :$BRIDGE_PORT
+  --no-browser    Don't open the browser automatically
+  -f, --foreground
+                  Run in the foreground instead of backgrounding
+
+Examples:
+  cockpit start ~/projects/my-app
+  cockpit start . --prod
+EOF
+}
+
+# ---- port killing -----------------------------------------------------------
+pids_on_port() {
+  local port="$1"
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -ti "TCP:${port}" -sTCP:LISTEN 2>/dev/null || true
+  elif command -v fuser >/dev/null 2>&1; then
+    fuser "${port}/tcp" 2>/dev/null || true
+  else
+    echo ""
+  fi
+}
+
+kill_port() {
+  local port="$1" pids tries
+  pids="$(pids_on_port "$port")"
+  if [ -z "${pids:-}" ]; then return 0; fi
+  # shellcheck disable=SC2086
+  kill $pids 2>/dev/null || true
+  for _ in 1 2 3 4 5 6; do
+    sleep 0.5
+    pids="$(pids_on_port "$port")"
+    [ -z "${pids:-}" ] && return 0
+  done
+  # Still holding the port — force it.
+  # shellcheck disable=SC2086
+  kill -9 $pids 2>/dev/null || true
+  sleep 0.5
+}
+
+port_open() {
+  local port="$1"
+  [ -n "$(pids_on_port "$port")" ]
+}
+
+kill_all() {
+  if [ -f "$PID_FILE" ]; then
+    local pid
+    while read -r pid; do
+      if [ -n "${pid:-}" ] && kill -0 "$pid" 2>/dev/null; then
+        kill "$pid" 2>/dev/null || true
+      fi
+    done < "$PID_FILE"
+    rm -f "$PID_FILE"
+  fi
+  kill_port "$WEB_PORT"
+  kill_port "$BRIDGE_PORT"
+}
+
+# ---- browser ----------------------------------------------------------------
+open_browser() {
+  local url="$1"
+  if [ -n "${BROWSER:-}" ]; then
+    "$BROWSER" "$url" >/dev/null 2>&1 & return 0
+  fi
+  case "$(uname -s)" in
+    Darwin) open "$url" ;;
+    MINGW*|MSYS*|CYGWIN*) start "" "$url" ;;
+    *) # Linux / WSL
+      if command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "$url" >/dev/null 2>&1 &
+      elif command -v wslview >/dev/null 2>&1; then
+        wslview "$url" >/dev/null 2>&1 &
+      else
+        echo "Could not open a browser automatically; visit $url"
+      fi
+      ;;
+  esac
+}
+
+wait_for_url() {
+  local url="$1" timeout="${2:-60}" i=0
+  echo "Waiting for $url …"
+  while [ "$i" -lt "$timeout" ]; do
+    if curl --noproxy '*' -fsS -o /dev/null --max-time 2 "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+    i=$((i + 1))
+  done
+  return 1
+}
+
+# Dev-mode server binaries. Invoked directly (not via `npm run dev`) because
+# `tsx watch` registers an inotify watch per file under node_modules and blows
+# past fs.inotify.max_user_watches (ENOSPC) on ordinary machines.
+TSX_BIN="$REPO_DIR/node_modules/.bin/tsx"
+VITE_BIN="$REPO_DIR/node_modules/.bin/vite"
+
+# ---- commands ---------------------------------------------------------------
+cmd_start() {
+  local target="" prod=0 browser=1 foreground=0
+  for arg in "$@"; do
+    case "$arg" in
+      --prod) prod=1 ;;
+      --no-browser) browser=0 ;;
+      -f|--foreground) foreground=1 ;;
+      -h|--help) usage; return 0 ;;
+      --) ;;
+      -* ) echo "Unknown option: $arg" >&2; usage >&2; return 1 ;;
+      *) if [ -z "$target" ]; then target="$arg"; else
+           echo "Unexpected argument: $arg" >&2; usage >&2; return 1
+         fi ;;
+    esac
+  done
+
+  local root_env="" url=""
+  if [ -n "$target" ]; then
+    if [ ! -d "$target" ]; then
+      echo "Not a directory: $target" >&2; return 1
+    fi
+    root_env="$(cd "$target" && pwd)"
+  fi
+
+  if [ "$prod" -eq 1 ]; then
+    if [ ! -f "$REPO_DIR/apps/web/dist/index.html" ] || [ ! -f "$REPO_DIR/apps/bridge/dist/server/index.js" ]; then
+      echo "Production build missing — building now…"
+      (cd "$REPO_DIR" && npm run build)
+    fi
+    url="http://localhost:${BRIDGE_PORT}"
+  else
+    url="http://localhost:${WEB_PORT}"
+  fi
+
+  echo "Stopping anything on :$WEB_PORT / :$BRIDGE_PORT…"
+  kill_all
+
+  if [ "$prod" -eq 1 ]; then mode=" (prod)"; else mode=" (dev)"; fi
+  echo "Starting cockpit${root_env:+ for $root_env}${mode}…"
+  : > "$LOG_FILE"
+  if [ "$foreground" -eq 1 ]; then
+    if [ "$prod" -eq 1 ]; then
+      (cd "$REPO_DIR" && COCKPIT_ROOT="$root_env" PORT="$BRIDGE_PORT" npm run start -w apps/bridge)
+    else
+      (cd "$REPO_DIR/apps/bridge" && COCKPIT_ROOT="$root_env" PORT="$BRIDGE_PORT" "$TSX_BIN" src/server/index.ts) &
+      BRIDGE_PID=$!
+      trap 'kill $BRIDGE_PID 2>/dev/null' INT TERM EXIT
+      (cd "$REPO_DIR/apps/web" && "$VITE_BIN" --port "$WEB_PORT" --strictPort)
+    fi
+    return 0
+  fi
+
+  if [ "$prod" -eq 1 ]; then
+    (cd "$REPO_DIR" && COCKPIT_ROOT="$root_env" PORT="$BRIDGE_PORT" nohup npm run start -w apps/bridge >>"$LOG_FILE" 2>&1 < /dev/null & echo $! > "$PID_FILE")
+  else
+    if [ ! -x "$TSX_BIN" ] || [ ! -x "$VITE_BIN" ]; then
+      echo "Dev binaries missing — installing dependencies first…"
+      (cd "$REPO_DIR" && npm install)
+    fi
+    : > "$PID_FILE"
+    # stdin from /dev/null + disown: daemons must not hold the caller's stdio,
+    # or the invoking shell (and API tool sessions) won't return.
+    (cd "$REPO_DIR/apps/bridge" && COCKPIT_ROOT="$root_env" PORT="$BRIDGE_PORT" nohup "$TSX_BIN" src/server/index.ts >>"$LOG_FILE" 2>&1 < /dev/null & echo $! >> "$PID_FILE")
+    (cd "$REPO_DIR/apps/web" && nohup "$VITE_BIN" --port "$WEB_PORT" --strictPort >>"$LOG_FILE" 2>&1 < /dev/null & echo $! >> "$PID_FILE")
+  fi
+  disown -a 2>/dev/null || true
+
+  local health
+  if [ "$prod" -eq 1 ]; then
+    health="http://localhost:${BRIDGE_PORT}/api/health"
+  else
+    health="http://localhost:${WEB_PORT}/"
+  fi
+  if wait_for_url "$health" 90; then
+    echo "Cockpit is up: $url"
+    if [ "$browser" -eq 1 ]; then
+      open_browser "$url"
+    fi
+  else
+    echo "Timed out waiting for $health — see $LOG_FILE" >&2
+    return 1
+  fi
+}
+
+cmd_stop() {
+  kill_all
+  echo "Stopped (ports $WEB_PORT and $BRIDGE_PORT are free)."
+}
+
+cmd_status() {
+  local web="down" bridge="down"
+  port_open "$WEB_PORT" && web="up"
+  port_open "$BRIDGE_PORT" && bridge="up"
+  echo "web (:$WEB_PORT): $web"
+  echo "bridge (:$BRIDGE_PORT): $bridge"
+  if [ -f "$PID_FILE" ]; then
+    local pid alive=0
+    while read -r pid; do
+      if [ -n "${pid:-}" ] && kill -0 "$pid" 2>/dev/null; then
+        echo "cockpit pid $pid: running"
+        alive=1
+      fi
+    done < "$PID_FILE"
+    [ "$alive" -eq 0 ] && echo "cockpit pids: not running (stale pidfile)"
+  fi
+  if [ "$web" = "down" ] && [ "$bridge" = "down" ]; then return 1; fi
+}
+
+cmd_logs() {
+  if [ ! -f "$LOG_FILE" ]; then echo "No log yet at $LOG_FILE" >&2; return 1; fi
+  if [ "${1:-}" = "-f" ] || [ "${1:-}" = "--follow" ]; then
+    tail -f "$LOG_FILE"
+  else
+    tail -n 100 "$LOG_FILE"
+  fi
+}
+
+# ---- main -------------------------------------------------------------------
+case "${1:-}" in
+  start) shift; cmd_start "$@" ;;
+  stop) cmd_stop ;;
+  restart) shift; cmd_stop >/dev/null; cmd_start "$@" ;;
+  status) cmd_status ;;
+  logs) shift; cmd_logs "$@" ;;
+  -h|--help|help|"") usage ;;
+  -v|--version|version) echo "cockpit $VERSION" ;;
+  *) echo "Unknown command: $1" >&2; usage >&2; exit 1 ;;
+esac

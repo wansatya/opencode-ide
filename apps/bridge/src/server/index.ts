@@ -81,15 +81,17 @@ app.post("/api/workspace/open", async (req, res) => {
 });
 
 // Shared open logic used by the HTTP route and by startup pre-open
-// (COCKPIT_ROOT). Watcher teardown + git root detection run concurrently.
+// (COCKPIT_ROOT). The workspace stays exactly what the user opened — the git
+// toplevel is only used internally by GitService for git commands. Watcher
+// teardown + git root detection run concurrently.
 async function openWorkspace(dir: string) {
   const root = await setWorkspaceRoot(dir);
-  const [info] = await Promise.all([
+  const [, ] = await Promise.all([
     gitService.setRoot(root),
     watcherService.stop(),
   ]);
-  await watcherService.start(info.root ?? root);
-  return { root: info.root ?? root, selected: root, isRepo: info.isRepo };
+  await watcherService.start(root);
+  return { root, selected: root, isRepo: gitService.isRepo };
 }
 
 async function gitignoreFn(root: string) {
@@ -103,16 +105,15 @@ async function gitignoreFn(root: string) {
 app.get("/api/tree", async (_req, res) => {
   const root = requireRoot(res); if (!root) return;
   try {
-    const effRoot = gitService.root ?? root;
-    const { tree, truncated } = await buildTree(effRoot, await gitignoreFn(effRoot));
-    res.json({ root: effRoot, tree, truncated });
+    const { tree, truncated } = await buildTree(root, await gitignoreFn(root));
+    res.json({ root, tree, truncated });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.get("/api/file", async (req, res) => {
   const root = requireRoot(res); if (!root) return;
   const rel = String(req.query.path ?? "");
-  try { res.json(await readFileSafe(gitService.root ?? root, rel)); }
+  try { res.json(await readFileSafe(root, rel)); }
   catch (e: any) {
     if ((e as any).code === "ENOENT") return res.status(404).json({ error: "Not found" });
     res.status((e as any).status ?? 500).json({ error: e.message });
@@ -122,7 +123,7 @@ app.put("/api/file", async (req, res) => {
   const root = requireRoot(res); if (!root) return;
   const { path: rel, content } = req.body ?? {};
   if (typeof rel !== "string" || typeof content !== "string") return res.status(400).json({ error: "path+content required" });
-  try { res.json(await writeFileSafe(gitService.root ?? root, rel, content)); broadcast({ type: "file.modified", path: rel }); }
+  try { res.json(await writeFileSafe(root, rel, content)); broadcast({ type: "file.modified", path: rel }); }
   catch (e: any) { res.status((e as any).status ?? 500).json({ error: e.message }); }
 });
 
@@ -150,8 +151,7 @@ app.post("/api/opencode/start", async (req, res) => {
   const root = requireRoot(res); if (!root) return;
   try {
     const { cols, rows, args } = req.body ?? {};
-    const effRoot = gitService.root ?? root;
-    const r = await openCodeService.start(effRoot, cols ?? 120, rows ?? 30, args ?? []);
+    const r = await openCodeService.start(root, cols ?? 120, rows ?? 30, args ?? []);
     if (openCodeService.state !== "running") throw Object.assign(new Error(openCodeService.lastError ?? "opencode failed to stay running"), { status: 500, code: "NOT_RUNNING" });
     broadcast({ type: "opencode.state", state: "connected" });
     res.json({ ...r, state: openCodeService.state, bin: openCodeService.bin, version: openCodeService.version });

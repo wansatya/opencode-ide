@@ -2,10 +2,9 @@
 Local-first visual cockpit for OpenCode CLI. Three panels: repo tree (left), Monaco code/diff (center), live OpenCode PTY (right).
 ## Install (one line)
 ```sh
-curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh | bash
-# installer default repo: edit REPO_URL at the top of install.sh before sharing
+curl -fsSL https://raw.githubusercontent.com/wansatya/opencode-ide/main/install.sh | bash
 ```
-This clones to `~/.opencode-cockpit`, installs deps, builds, and links the `cockpit` command to `~/.local/bin/cockpit` (make sure it's on your `PATH`).
+This clones to `~/.opencode-ide`, installs deps, builds, and links the `cockpit` command to `~/.local/bin/cockpit` (make sure it's on your `PATH`).
 ## Run
 ```sh
 cockpit start ~/projects/my-app   # kills :5173/:3101, starts servers, opens http://localhost:5173

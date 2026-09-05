@@ -817,19 +817,15 @@ If user selects:
 ~/projects/my-app/src
 ```
 
-but Git root is:
+the application uses exactly that directory as the workspace root — tree,
+watcher, file APIs, and the OpenCode PTY cwd all stay there. The Git
+toplevel (here `~/projects/my-app`) is used internally only: GitService maps
+status/diff/head paths between the toplevel and the workspace via a
+path prefix, so Git badges keep working for subdirectories.
 
-```text
-~/projects/my-app
-```
-
-the application should use:
-
-```text
-~/projects/my-app
-```
-
-as repository root.
+Rationale: jumping to the Git toplevel breaks the "opened repo is the
+browsed repo" expectation (e.g. a home-directory monorepo would hijack every
+open). Never replace the user's selected directory with an ancestor.
 
 The top bar should display repository name.
 
