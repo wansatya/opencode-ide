@@ -1,0 +1,17 @@
+const B = "http://127.0.0.1:3105";
+const post = (p, b) => fetch(B + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b ?? {}) }).then(async (r) => ({ ok: r.ok, status: r.status, body: await r.json().catch(() => ({})) }));
+const get = (p) => fetch(B + p).then((r) => r.json());
+import WebSocket from "ws";
+console.log("workspace:", JSON.stringify(await post("/api/workspace/open", { path: "/tmp" })));
+console.log("check:", JSON.stringify(await get("/api/opencode/check")));
+const ws = new WebSocket("ws://127.0.0.1:3105/api/opencode/terminal");
+ws.on("message", (d) => { console.log("WSMSG len", d.length, JSON.stringify(d.toString().slice(0, 200))); });
+ws.on("error", (e) => console.log("WSERR", e.message));
+await new Promise((r, j) => { ws.on("open", () => { console.log("ws open"); r(); }); ws.on("error", j); });
+console.log("starting --version (should print + early-exit)...");
+console.log(JSON.stringify(await post("/api/opencode/start", { cols: 120, rows: 30, args: ["--version"] })));
+await new Promise((r) => setTimeout(r, 2000));
+console.log("status:", JSON.stringify(await get("/api/opencode/status")).slice(0, 300));
+ws.close();
+await post("/api/opencode/stop", {});
+process.exit(0);

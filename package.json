@@ -1,0 +1,19 @@
+{
+  "name": "opencode-cockpit",
+  "version": "0.1.0",
+  "private": true,
+  "bin": { "cockpit": "./bin/cockpit" },
+  "workspaces": ["apps/web", "apps/bridge"],
+  "scripts": {
+    "install:all": "npm install --workspaces",
+    "dev": "concurrently -n bridge,web -c blue,green \"npm run dev -w apps/bridge\" \"npm run dev -w apps/web\"",
+    "dev:bridge": "npm run dev -w apps/bridge",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web && npm run build -w apps/bridge",
+    "start": "npm run start -w apps/bridge",
+    "test": "npm run test -w apps/bridge"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
