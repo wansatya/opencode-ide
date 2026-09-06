@@ -79,6 +79,7 @@ export default function EditorPanel() {
   const [matchCount, setMatchCount] = useState(0);
   const [regexError, setRegexError] = useState<string | null>(null);
   const [showIndent, setShowIndent] = useState(false);
+  const [tabMenu, setTabMenu] = useState<{ x: number; y: number; file: string | null } | null>(null);
 
   const getActiveEditor = useCallback(() => {
     if (mode === "diff") return diffModifiedRef.current;
@@ -483,15 +484,62 @@ export default function EditorPanel() {
     return () => window.removeEventListener("mousedown", h);
   }, [showIndent]);
 
+  // close tab context menu on outside click / Escape / scroll
+  useEffect(() => {
+    if (!tabMenu) return;
+    const close = (e: MouseEvent) => {
+      const el = document.getElementById("cockpit-tab-menu");
+      if (el && !el.contains(e.target as Node)) setTabMenu(null);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setTabMenu(null); };
+    window.addEventListener("mousedown", close);
+    window.addEventListener("keydown", esc);
+    window.addEventListener("scroll", () => setTabMenu(null), true);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("keydown", esc);
+      window.removeEventListener("scroll", () => setTabMenu(null), true);
+    };
+  }, [tabMenu]);
+
+  const closeTab = useCallback((file: string) => {
+    const wasSelected = file === useRepo.getState().selectedFile;
+    const remaining = useEditor.getState().openFiles.filter((x) => x !== file);
+    useEditor.getState().close(file);
+    if (wasSelected) useRepo.getState().select(remaining[remaining.length - 1] ?? null);
+    setTabMenu(null);
+  }, []);
+
+  const closeOthers = useCallback((file: string) => {
+    const openFiles = [...useEditor.getState().openFiles];
+    for (const f of openFiles) if (f !== file) useEditor.getState().close(f);
+    useRepo.getState().select(file);
+    setTabMenu(null);
+  }, []);
+
+  const closeAll = useCallback(() => {
+    useEditor.getState().reset();
+    useRepo.getState().select(null);
+    setTabMenu(null);
+  }, []);
+
   if (!selectedFile) return <div className="h-full flex items-center justify-center text-sm text-[#9e8b7d] bg-[#140f0c]">Select a file from the repository.</div>;
   const gitSt = statusMap[selectedFile]?.status;
   const activeToggleClass = (on: boolean) => on ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8] hover:bg-[#4a3627]";
   return (
     <div className="h-full flex flex-col bg-[#140f0c]">
-      <div className="flex items-center gap-1 px-2 h-9 border-b border-[#36281e] bg-[#231a14] shrink-0 relative z-40">
+      <div className="flex items-center gap-1 px-2 h-9 border-b border-[#36281e] bg-[#231a14] shrink-0 relative z-40"
+        onContextMenu={(e) => {
+          // right-click on empty tab bar background -> show Close All only
+          if ((e.target as HTMLElement).closest("[data-tab]")) return;
+          e.preventDefault();
+          if (ed.openFiles.length === 0) return;
+          setTabMenu({ x: e.clientX, y: e.clientY, file: null });
+        }}>
         <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0">
           {ed.openFiles.map((f) => (
-            <span key={f} onClick={() => useRepo.getState().select(f)}
+            <span key={f} data-tab={f} onClick={() => useRepo.getState().select(f)}
+              onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setTabMenu({ x: e.clientX, y: e.clientY, file: f }); }}
               className={`flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer whitespace-nowrap shrink-0 ${f === selectedFile ? "bg-[#453225] text-amber-100 font-medium" : "text-[#9e8b7d] hover:bg-[#281f18] hover:text-[#ece1d8]"}`}>
               {f.split("/").pop()}{ed.dirty[f] ? " •" : ""}
               <X size={12} className="hover:text-red-400" onClick={(e) => {
@@ -507,6 +555,19 @@ export default function EditorPanel() {
             </span>
           ))}
         </div>
+        {tabMenu && (
+          <div id="cockpit-tab-menu" style={{ left: tabMenu.x, top: tabMenu.y }} className="fixed z-50 min-w-[180px] rounded-md border border-[#36281e] bg-[#231a14] shadow-xl py-1 text-sm text-[#ece1d8] -translate-x-1 -translate-y-1"
+            onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+            {tabMenu.file && (
+              <>
+                <button onClick={() => closeTab(tabMenu.file!)} className="w-full text-left px-3 py-1.5 hover:bg-[#4a3627] text-xs">Close</button>
+                <button onClick={() => closeOthers(tabMenu.file!)} disabled={ed.openFiles.length <= 1} className="w-full text-left px-3 py-1.5 hover:bg-[#4a3627] text-xs disabled:opacity-40 disabled:cursor-not-allowed">Close Others</button>
+                <div className="my-1 border-t border-[#36281e]" />
+              </>
+            )}
+            <button onClick={closeAll} className="w-full text-left px-3 py-1.5 hover:bg-[#4a3627] text-xs">Close All</button>
+          </div>
+        )}
         <div className="flex items-center gap-1 shrink-0">
         {/* Indentation control */}
         <div className="relative">
