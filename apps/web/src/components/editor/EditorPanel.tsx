@@ -488,24 +488,26 @@ export default function EditorPanel() {
   const activeToggleClass = (on: boolean) => on ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8] hover:bg-[#4a3627]";
   return (
     <div className="h-full flex flex-col bg-[#140f0c]">
-      <div className="flex items-center gap-1 px-2 h-9 border-b border-[#36281e] bg-[#231a14] overflow-x-auto shrink-0">
-        {ed.openFiles.map((f) => (
-          <span key={f} onClick={() => useRepo.getState().select(f)}
-            className={`flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer whitespace-nowrap ${f === selectedFile ? "bg-[#453225] text-amber-100 font-medium" : "text-[#9e8b7d] hover:bg-[#281f18] hover:text-[#ece1d8]"}`}>
-            {f.split("/").pop()}{ed.dirty[f] ? " •" : ""}
-            <X size={12} className="hover:text-red-400" onClick={(e) => {
-              e.stopPropagation();
-              const wasSelected = f === useRepo.getState().selectedFile;
-              const remaining = ed.openFiles.filter((x) => x !== f);
-              ed.close(f);
-              if (wasSelected) {
-                const next = remaining[remaining.length - 1] ?? null;
-                useRepo.getState().select(next);
-              }
-            }} />
-          </span>
-        ))}
-        <div className="flex-1" />
+      <div className="flex items-center gap-1 px-2 h-9 border-b border-[#36281e] bg-[#231a14] shrink-0 relative z-40">
+        <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0">
+          {ed.openFiles.map((f) => (
+            <span key={f} onClick={() => useRepo.getState().select(f)}
+              className={`flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer whitespace-nowrap shrink-0 ${f === selectedFile ? "bg-[#453225] text-amber-100 font-medium" : "text-[#9e8b7d] hover:bg-[#281f18] hover:text-[#ece1d8]"}`}>
+              {f.split("/").pop()}{ed.dirty[f] ? " •" : ""}
+              <X size={12} className="hover:text-red-400" onClick={(e) => {
+                e.stopPropagation();
+                const wasSelected = f === useRepo.getState().selectedFile;
+                const remaining = ed.openFiles.filter((x) => x !== f);
+                ed.close(f);
+                if (wasSelected) {
+                  const next = remaining[remaining.length - 1] ?? null;
+                  useRepo.getState().select(next);
+                }
+              }} />
+            </span>
+          ))}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
         {/* Indentation control */}
         <div className="relative">
           <button id="cockpit-indent-btn" onClick={() => setShowIndent((v) => !v)}
@@ -513,7 +515,7 @@ export default function EditorPanel() {
             <Settings2 size={12} />{editorInsertSpaces ? `Spaces: ${editorTabSize}` : `Tabs: ${editorTabSize}`}
           </button>
           {showIndent && (
-            <div id="cockpit-indent-dropdown" className="absolute top-8 right-0 bg-[#231a14] border border-[#36281e] rounded shadow-xl p-3 z-20 w-56">
+            <div id="cockpit-indent-dropdown" className="absolute top-8 right-0 bg-[#231a14] border border-[#36281e] rounded shadow-xl p-3 z-50 w-56">
               <div className="text-xs font-medium text-amber-200 mb-2 flex items-center gap-1"><WrapText size={12}/>Indentation</div>
               <div className="flex gap-1 mb-3">
                 <button onClick={() => setInsertSpaces(true)} className={`flex-1 text-xs px-2 py-1 rounded border ${editorInsertSpaces ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#ece1d8] border-[#36281e] hover:bg-[#4a3627]"}`}>Spaces</button>
@@ -549,6 +551,7 @@ export default function EditorPanel() {
             <GitCompare size={12} />{mode === "code" ? "Diff" : "Code"}
           </button>
         )}
+        </div>
       </div>
       {showFind && (
         <div className="flex flex-col gap-2 px-2 py-2 border-b border-[#36281e] bg-[#1a130f] shrink-0">
