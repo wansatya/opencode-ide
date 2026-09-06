@@ -21,6 +21,6 @@ export const useUI = create<S>((set, get) => ({
   toggleRight: () => set({ showRight: !get().showRight }),
   setQuickOpen: (b) => set({ quickOpen: b }),
   setPalette: (b) => set({ palette: b }),
-  setTabSize: (n) => { const v = [1, 2, 4, 8].includes(n) ? n : 2; set({ editorTabSize: v }); try { localStorage.setItem("editorTabSize", String(v)); } catch {} },
+  setTabSize: (n) => { const v = [2, 4].includes(n) ? n : 2; set({ editorTabSize: v }); try { localStorage.setItem("editorTabSize", String(v)); } catch {} },
   setInsertSpaces: (b) => { set({ editorInsertSpaces: b }); try { localStorage.setItem("editorInsertSpaces", String(b)); } catch {} },
 }));

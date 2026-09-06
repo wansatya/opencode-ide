@@ -521,7 +521,7 @@ export default function EditorPanel() {
               </div>
               <div className="text-xs text-[#9e8b7d] mb-1">Tab size</div>
               <div className="flex gap-1">
-                {[2, 4, 8].map((sz) => (
+                {[2, 4].map((sz) => (
                   <button key={sz} onClick={() => setTabSize(sz)} className={`flex-1 text-xs px-2 py-1 rounded border ${editorTabSize === sz ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#ece1d8] border-[#36281e] hover:bg-[#4a3627]"}`}>{sz}</button>
                 ))}
               </div>
