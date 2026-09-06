@@ -60,17 +60,12 @@ if [ "$NODE_MAJOR" -lt 20 ]; then
   exit 1
 fi
 
-if [ -d "$INSTALL_DIR/.git" ]; then
-  echo "Updating existing checkout at $INSTALL_DIR…"
-  git -C "$INSTALL_DIR" pull --ff-only || echo "Warning: could not fast-forward; keeping local checkout." >&2
-else
-  if [ -e "$INSTALL_DIR" ]; then
-    echo "$INSTALL_DIR exists and is not a git checkout. Remove it or pass --dir." >&2
-    exit 1
-  fi
-  echo "Cloning $REPO_URL → $INSTALL_DIR…"
-  git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
+if [ -e "$INSTALL_DIR" ]; then
+  echo "Removing existing checkout at $INSTALL_DIR…"
+  rm -rf "$INSTALL_DIR"
 fi
+echo "Cloning $REPO_URL → $INSTALL_DIR…"
+git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
 
 echo "Installing dependencies…"
 (cd "$INSTALL_DIR" && npm install)
