@@ -54,6 +54,80 @@ export async function writeFileSafe(workspaceRoot: string, relPath: string, cont
   return { path: relPath, size: stat.size, modifiedAt: stat.mtimeMs, hash: hashContent(content) };
 }
 
+function validateRelPath(relPath: string) {
+  if (!relPath || !relPath.trim()) throw Object.assign(new Error("Name required"), { status: 400 });
+  if (relPath.includes("\0")) throw Object.assign(new Error("Invalid name"), { status: 400 });
+  // disallow absolute or backslash-traversal; resolveSafe will catch ".." but give clearer message
+  if (relPath.startsWith("/") || relPath.startsWith("\\")) throw Object.assign(new Error("Name must be relative"), { status: 400 });
+}
+
+export async function createFileSafe(workspaceRoot: string, relPath: string, content = "") {
+  validateRelPath(relPath);
+  // reject trailing slash which indicates directory intent
+  if (relPath.endsWith("/") || relPath.endsWith(path.sep)) throw Object.assign(new Error("File name must not end with slash"), { status: 400 });
+  const abs = resolveSafe(workspaceRoot, relPath);
+  try {
+    await fs.stat(abs);
+    throw Object.assign(new Error("Already exists"), { status: 409 });
+  } catch (e: any) {
+    if (e.status === 409) throw e;
+    if (e.code !== "ENOENT") throw e;
+  }
+  await fs.mkdir(path.dirname(abs), { recursive: true });
+  await fs.writeFile(abs, content, "utf8");
+  const stat = await fs.stat(abs);
+  return { path: relPath, size: stat.size, modifiedAt: stat.mtimeMs, hash: hashContent(content) };
+}
+
+export async function createDirectorySafe(workspaceRoot: string, relPath: string) {
+  validateRelPath(relPath);
+  // normalize: strip trailing slashes for existence check
+  const normalized = relPath.replace(/\/+$/, "");
+  if (!normalized) throw Object.assign(new Error("Name required"), { status: 400 });
+  const abs = resolveSafe(workspaceRoot, normalized);
+  try {
+    const st = await fs.stat(abs);
+    if (st) throw Object.assign(new Error("Already exists"), { status: 409 });
+  } catch (e: any) {
+    if (e.status === 409) throw e;
+    if (e.code !== "ENOENT") throw e;
+  }
+  await fs.mkdir(abs, { recursive: true });
+  const stat = await fs.stat(abs);
+  return { path: normalized, size: stat.size, modifiedAt: stat.mtimeMs };
+}
+
+export async function deletePathSafe(workspaceRoot: string, relPath: string) {
+  validateRelPath(relPath);
+  const normalized = relPath.replace(/\/+$/, "");
+  if (!normalized) throw Object.assign(new Error("Cannot delete workspace root"), { status: 400 });
+  const abs = resolveSafe(workspaceRoot, normalized);
+  const rootAbs = path.resolve(workspaceRoot);
+  if (abs === rootAbs) throw Object.assign(new Error("Cannot delete workspace root"), { status: 400 });
+  let st: any;
+  try {
+    st = await fs.lstat(abs);
+  } catch (e: any) {
+    if (e.code === "ENOENT") throw Object.assign(new Error("Not found"), { status: 404 });
+    throw e;
+  }
+  if (st.isSymbolicLink()) {
+    await fs.unlink(abs);
+    return { path: normalized, type: "symlink" as const };
+  }
+  if (st.isDirectory()) {
+    await fs.rm(abs, { recursive: true, force: true });
+    return { path: normalized, type: "directory" as const };
+  }
+  if (st.isFile()) {
+    await fs.unlink(abs);
+    return { path: normalized, type: "file" as const };
+  }
+  // fallback for other types (FIFO, socket, etc.)
+  await fs.rm(abs, { recursive: true, force: true });
+  return { path: normalized, type: "file" as const };
+}
+
 export type FileNode = {
   path: string;
   name: string;

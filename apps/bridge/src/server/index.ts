@@ -6,7 +6,7 @@ import { createServer } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import Ignore from "ignore";
 import { getWorkspaceRoot, setWorkspaceRoot } from "./workspace.js";
-import { buildTree, readFileSafe, writeFileSafe, resolveSafe } from "../filesystem/FileService.js";
+import { buildTree, readFileSafe, writeFileSafe, createFileSafe, createDirectorySafe, deletePathSafe, resolveSafe } from "../filesystem/FileService.js";
 import { gitService } from "../git/GitService.js";
 import { watcherService } from "../watcher/WatcherService.js";
 import { openCodeService } from "../opencode/OpenCodeService.js";
@@ -125,6 +125,46 @@ app.put("/api/file", async (req, res) => {
   if (typeof rel !== "string" || typeof content !== "string") return res.status(400).json({ error: "path+content required" });
   try { res.json(await writeFileSafe(root, rel, content)); broadcast({ type: "file.modified", path: rel }); }
   catch (e: any) { res.status((e as any).status ?? 500).json({ error: e.message }); }
+});
+
+app.post("/api/fs/file", async (req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  const { path: rel, content } = req.body ?? {};
+  if (typeof rel !== "string") return res.status(400).json({ error: "path required" });
+  try {
+    const r = await createFileSafe(root, rel, typeof content === "string" ? content : "");
+    broadcast({ type: "file.created", path: r.path });
+    res.json(r);
+  } catch (e: any) {
+    if (e.code === "ENOENT") return res.status(400).json({ error: e.message });
+    res.status(e.status ?? 500).json({ error: e.message });
+  }
+});
+
+app.post("/api/fs/directory", async (req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  const { path: rel } = req.body ?? {};
+  if (typeof rel !== "string") return res.status(400).json({ error: "path required" });
+  try {
+    const r = await createDirectorySafe(root, rel);
+    broadcast({ type: "directory.created", path: r.path });
+    res.json(r);
+  } catch (e: any) {
+    res.status(e.status ?? 500).json({ error: e.message });
+  }
+});
+
+app.delete("/api/fs", async (req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  const rel = typeof req.query.path === "string" ? req.query.path : (req.body as any)?.path;
+  if (typeof rel !== "string") return res.status(400).json({ error: "path required" });
+  try {
+    const r = await deletePathSafe(root, rel);
+    broadcast({ type: r.type === "directory" ? "directory.deleted" : "file.deleted", path: r.path });
+    res.json(r);
+  } catch (e: any) {
+    res.status(e.status ?? 500).json({ error: e.message });
+  }
 });
 
 app.get("/api/git/status", async (_req, res) => {

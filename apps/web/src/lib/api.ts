@@ -24,5 +24,8 @@ export const api = {
   ocCheck: () => fetch("/api/opencode/check").then(j<{ found: boolean; path: string | null; version: string | null; hint?: string }>),
   ocStatus: () => fetch("/api/opencode/status").then(j<{ state: string; pid: number | null; exitCode: number | null; lastError: string | null; bin: string | null; version: string | null }>),
   browse: (p?: string) => fetch("/api/browse" + (p ? "?path=" + encodeURIComponent(p) : "")).then(j<{ path: string; parent: string | null; home: string; entries: { name: string; path: string }[] }>),
+  createFile: (p: string, content?: string) => fetch("/api/fs/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p, content: content ?? "" }) }).then(j<{ path: string; hash: string }>) ,
+  createDirectory: (p: string) => fetch("/api/fs/directory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) }).then(j<{ path: string }>) ,
+  deletePath: (p: string) => fetch("/api/fs?path=" + encodeURIComponent(p), { method: "DELETE" }).then(j<{ path: string; type: string }>) ,
 };
 export function wsUrl(p: string) { const proto = location.protocol === "https:" ? "wss:" : "ws:"; return proto + "//" + location.host + p; }

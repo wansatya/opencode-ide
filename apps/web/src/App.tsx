@@ -33,7 +33,7 @@ export default function App() {
       sock.onmessage = (e) => {
         try {
           const m = JSON.parse(e.data);
-          if (m.type?.startsWith("file.")) window.dispatchEvent(new CustomEvent("cockpit:file-event", { detail: m.path }));
+          if (m.type?.startsWith("file.") || m.type?.startsWith("directory.")) window.dispatchEvent(new CustomEvent("cockpit:file-event", { detail: { path: m.path, type: m.type } }));
           else if (m.type === "git.status_changed") useGit.getState().refresh();
           else if (m.type === "opencode.state") {
             retry = 0;
@@ -70,6 +70,17 @@ export default function App() {
       if (mod && e.shiftKey && e.key.toLowerCase() === "b") { e.preventDefault(); useUI.getState().toggleRight(); }
       if (mod && e.key === "`") { e.preventDefault(); document.querySelector<HTMLElement>(".xterm-screen")?.focus(); }
       if (mod && e.shiftKey && e.key.toLowerCase() === "d") { e.preventDefault(); const s = useRepo.getState().selectedFile; if (s) { const m = useEditor.getState().mode[s] ?? "code"; useEditor.getState().setMode(s, m === "code" ? "diff" : "code"); } }
+      if (mod && e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        const sel = useRepo.getState().selectedFile;
+        const openFiles = useEditor.getState().openFiles;
+        const target = sel ?? openFiles[openFiles.length - 1];
+        if (target) {
+          const remaining = openFiles.filter((f) => f !== target);
+          useEditor.getState().close(target);
+          if (sel === target) useRepo.getState().select(remaining[remaining.length - 1] ?? null);
+        }
+      }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);

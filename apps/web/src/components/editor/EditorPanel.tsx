@@ -52,6 +52,8 @@ export default function EditorPanel() {
   const [base, setBase] = useState<string | null>(null);
   const val = selectedFile ? ed.contents[selectedFile] ?? "" : "";
   const mode = selectedFile ? ed.mode[selectedFile] ?? "code" : "code";
+  const pendingRef = useRef<string[]>([]);
+  const timerRef = useRef<number | null>(null);
 
   const load = useCallback(async (p: string) => {
     try {
@@ -83,17 +85,118 @@ export default function EditorPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFile]);
 
-  // external-change refresh via custom event
+  // external-change refresh + auto-open opencode-written files
   useEffect(() => {
     const h = (e: any) => {
-      const p = e.detail as string;
-      if (p === useRepo.getState().selectedFile) load(p);
+      let p: string | null = null;
+      let type: string | undefined;
+      const d = e.detail;
+      if (typeof d === "string") p = d;
+      else if (d && typeof d.path === "string") { p = d.path; type = d.type; }
+      if (!p) return;
+
+      // directory events: just refresh tree/git, no auto-open
+      if (type?.startsWith("directory")) {
+        refresh();
+        useRepo.getState().load();
+        return;
+      }
+      // deleted file: remove from editor tabs and clear selection if needed
+      if (type === "file.deleted" || type === "directory.deleted") {
+        refresh();
+        useRepo.getState().load();
+        const editorState = useEditor.getState();
+        const isDir = type === "directory.deleted";
+        if (isDir) {
+          const prefix = p + "/";
+          for (const f of [...editorState.openFiles]) {
+            if (f === p || f.startsWith(prefix)) editorState.close(f);
+          }
+          if (useRepo.getState().selectedFile === p || useRepo.getState().selectedFile?.startsWith(prefix)) {
+            const remaining = useEditor.getState().openFiles;
+            useRepo.getState().select(remaining[remaining.length - 1] ?? null);
+          }
+          // collapse expanded state for deleted dir
+          const expanded = { ...useRepo.getState().expanded };
+          for (const k of Object.keys(expanded)) {
+            if (k === p || k.startsWith(prefix)) delete expanded[k];
+          }
+          useRepo.setState({ expanded });
+        } else {
+          if (editorState.openFiles.includes(p)) editorState.close(p);
+          if (useRepo.getState().selectedFile === p) {
+            const remaining = useEditor.getState().openFiles;
+            useRepo.getState().select(remaining[remaining.length - 1] ?? null);
+          }
+        }
+        return;
+      }
+
       refresh();
       useRepo.getState().load();
+      const selected = useRepo.getState().selectedFile;
+      if (p === selected) { load(p); return; }
+
+      // Auto-open: opencode (or any external) created/modified a file not currently focused.
+      // Debounce burst writes: collect paths, then focus last, preload others as background tabs.
+      if (!pendingRef.current.includes(p)) pendingRef.current.push(p);
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      timerRef.current = window.setTimeout(() => {
+        const paths = [...pendingRef.current];
+        pendingRef.current = [];
+        timerRef.current = null;
+        if (paths.length === 0) return;
+
+        // preload earlier paths as background tabs without stealing focus
+        for (const pp of paths.slice(0, -1)) {
+          const s = useEditor.getState();
+          if (!s.openFiles.includes(pp)) {
+            useEditor.setState({ openFiles: [...s.openFiles, pp] });
+          }
+          api.file(pp).then((f) => {
+            if (!f.binary && !f.tooLarge) useEditor.getState().setContent(pp, f.content ?? "", f.hash);
+          }).catch(() => {});
+        }
+        const last = paths[paths.length - 1];
+        const curSelected = useRepo.getState().selectedFile;
+        const isDirty = curSelected ? !!useEditor.getState().dirty[curSelected] : false;
+        // If user has unsaved changes in current file, don't steal focus — background open + toast
+        if (isDirty && curSelected && curSelected !== last) {
+          const s = useEditor.getState();
+          if (!s.openFiles.includes(last)) useEditor.setState({ openFiles: [...s.openFiles, last] });
+          api.file(last).then((f) => {
+            if (!f.binary && !f.tooLarge) useEditor.getState().setContent(last, f.content ?? "", f.hash);
+          }).catch(() => {});
+          useEditor.getState().notify(`OpenCode updated ${last} — opened in background`);
+          return;
+        }
+        // Auto-focus last modified file so user sees diff
+        useRepo.getState().select(last);
+        // After git status refresh, switch to diff so change is obvious
+        setTimeout(async () => {
+          try {
+            await useGit.getState().refresh();
+            const st = useGit.getState().statusMap[last]?.status;
+            if (st === "modified" || st === "added" || st === "untracked" || st === "renamed") {
+              useEditor.getState().setMode(last, "diff");
+              return;
+            }
+            // fallback: if content differs from HEAD, show diff
+            const head = await useGit.getState().head(last).catch(() => null);
+            const cur = useEditor.getState().contents[last];
+            if (head !== null && head !== cur) useEditor.getState().setMode(last, "diff");
+          } catch {}
+        }, 400);
+      }, 250);
     };
+    const gitH = () => refresh();
     window.addEventListener("cockpit:file-event", h);
-    window.addEventListener("cockpit:git", () => refresh());
-    return () => { window.removeEventListener("cockpit:file-event", h); };
+    window.addEventListener("cockpit:git", gitH);
+    return () => {
+      window.removeEventListener("cockpit:file-event", h);
+      window.removeEventListener("cockpit:git", gitH);
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
   }, [load, refresh]);
 
   const save = useCallback(async () => {
@@ -125,7 +228,16 @@ export default function EditorPanel() {
           <span key={f} onClick={() => useRepo.getState().select(f)}
             className={`flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer whitespace-nowrap ${f === selectedFile ? "bg-[#453225] text-amber-100 font-medium" : "text-[#9e8b7d] hover:bg-[#281f18] hover:text-[#ece1d8]"}`}>
             {f.split("/").pop()}{ed.dirty[f] ? " •" : ""}
-            <X size={12} className="hover:text-red-400" onClick={(e) => { e.stopPropagation(); ed.close(f); }} />
+            <X size={12} className="hover:text-red-400" onClick={(e) => {
+              e.stopPropagation();
+              const wasSelected = f === useRepo.getState().selectedFile;
+              const remaining = ed.openFiles.filter((x) => x !== f);
+              ed.close(f);
+              if (wasSelected) {
+                const next = remaining[remaining.length - 1] ?? null;
+                useRepo.getState().select(next);
+              }
+            }} />
           </span>
         ))}
         <div className="flex-1" />
