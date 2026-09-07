@@ -2,18 +2,7 @@
 
 Local-first visual cockpit for [OpenCode](https://opencode.ai) CLI. Three resizable panels — **Repository tree** (left), **Monaco code/diff** (center), **live OpenCode PTY** (right) — with file-watching, Git awareness and isolated session branches. The filesystem + Git are the source of truth.
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│ TopBar: Wan Cockpit | my-app  ~/projects/my-app  [branch ▾]  clean · 0 │
-├──────────────┬──────────────────────────────┬─────────────────────────────┤
-│ Repository   │ Editor (tabs + toolbar)      │ OpenCode Terminal (xterm)   │
-│ ▼ src        │ App.tsx  [Code|Diff] [Find] │ > opencode                  │
-│  Button.tsx M│  1 import ...                │ > Reading ...               │
-│ package.json │                              │ $ npm test  ✓ 42 passed     │
-├──────────────┴──────────────────────────────┴─────────────────────────────┤
-│ StatusBar: 2 changed · 0 added · 2 modified | branch: main | Merge [▾] → main [Merge] [ ]delete after | process running │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+![OpenCode Cockpit screenshot](screenshot.png)
 
 ---
 
