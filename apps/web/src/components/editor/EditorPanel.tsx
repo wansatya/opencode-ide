@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Editor, { DiffEditor } from "@monaco-editor/react";
-import { X, GitCompare, Save, Search, Replace, ChevronUp, ChevronDown, WrapText, Settings2 } from "lucide-react";
+import { X, GitCompare, Save, Search, Replace, ChevronUp, ChevronDown, WrapText, Settings2, Eye } from "lucide-react";
 import { api } from "../../lib/api";
 import { useRepo } from "../../stores/repository";
 import { useEditor } from "../../stores/editor";
 import { useGit } from "../../stores/git";
 import { useUI } from "../../stores/ui";
+import ImageViewer, { isImageFile } from "./ImageViewer";
+import MarkdownPreview, { isMarkdownFile } from "./MarkdownPreview";
 
 function langOf(p: string) {
   const e = p.split(".").pop()?.toLowerCase();
@@ -68,10 +70,13 @@ export default function EditorPanel() {
   const ed = useEditor();
   const { statusMap, refresh } = useGit();
   const { editorTabSize, editorInsertSpaces, setTabSize, setInsertSpaces } = useUI();
-  const [meta, setMeta] = useState<{ binary?: boolean; tooLarge?: boolean } | null>(null);
+  const [meta, setMeta] = useState<{ binary?: boolean; tooLarge?: boolean; size?: number } | null>(null);
   const [base, setBase] = useState<string | null>(null);
   const val = selectedFile ? ed.contents[selectedFile] ?? "" : "";
   const mode = selectedFile ? ed.mode[selectedFile] ?? "code" : "code";
+  const [mdMode, setMdMode] = useState<"code" | "preview" | "split">("preview");
+  const isImg = selectedFile ? isImageFile(selectedFile) : false;
+  const isMd = selectedFile ? isMarkdownFile(selectedFile) : false;
   const pendingRef = useRef<string[]>([]);
   const timerRef = useRef<number | null>(null);
 
@@ -608,6 +613,31 @@ export default function EditorPanel() {
             </div>
           )}
         </div>
+        {isMd && (
+          <div className="flex items-center rounded border border-[#36281e] bg-[#1a130f] p-0.5 text-xs">
+            <button
+              onClick={() => setMdMode("code")}
+              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "code" ? "bg-amber-700 text-white font-medium" : "text-[#9e8b7d] hover:text-[#ece1d8]"}`}
+              title="Code View"
+            >
+              Code
+            </button>
+            <button
+              onClick={() => setMdMode("preview")}
+              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "preview" ? "bg-amber-700 text-white font-medium" : "text-[#9e8b7d] hover:text-[#ece1d8]"}`}
+              title="Markdown Preview"
+            >
+              Preview
+            </button>
+            <button
+              onClick={() => setMdMode("split")}
+              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "split" ? "bg-amber-700 text-white font-medium" : "text-[#9e8b7d] hover:text-[#ece1d8]"}`}
+              title="Side-by-side Split View"
+            >
+              Split
+            </button>
+          </div>
+        )}
         <button onClick={() => {
           setShowFind((v) => !v);
           if (!showFind) setTimeout(() => document.getElementById("cockpit-find-input")?.focus(), 30);
@@ -662,9 +692,31 @@ export default function EditorPanel() {
           <div className="text-[11px] text-[#7c6a5c] px-1">Enter ↵ next · Shift+Enter prev · Ctrl/Cmd+H toggles replace · Replace All supports $1 capture groups in regex mode</div>
         </div>
       )}
-      {meta?.binary && <div className="p-6 text-sm text-[#9e8b7d]">Binary file — This file cannot be displayed in the editor.</div>}
-      {meta?.tooLarge && <div className="p-6 text-sm text-[#9e8b7d]">Large file — This file is too large to safely display in the editor.</div>}
-      {!meta?.binary && !meta?.tooLarge && (
+      {isImg ? (
+        <ImageViewer filePath={selectedFile} size={meta?.size} />
+      ) : (meta?.binary && !isImg) ? (
+        <div className="p-6 text-sm text-[#9e8b7d]">Binary file — This file cannot be displayed in the editor.</div>
+      ) : meta?.tooLarge ? (
+        <div className="p-6 text-sm text-[#9e8b7d]">Large file — This file is too large to safely display in the editor.</div>
+      ) : isMd && mdMode === "preview" ? (
+        <MarkdownPreview content={val} filePath={selectedFile} />
+      ) : isMd && mdMode === "split" ? (
+        <div className="flex-1 flex min-h-0">
+          <div className="flex-1 border-r border-[#36281e] min-w-0">
+            <Editor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} language="markdown" path={selectedFile} value={val}
+              onMount={(edInst, monaco) => {
+                monacoRef.current = monaco;
+                editorRef.current = edInst;
+                applyIndent();
+              }}
+              onChange={(v) => { ed.setContent(selectedFile, v ?? ""); ed.markDirty(selectedFile, true); }}
+              options={{ fontSize: 13, minimap: { enabled: false }, folding: true, matchBrackets: "always", wordWrap: "on", readOnly: false, tabSize: editorTabSize, insertSpaces: editorInsertSpaces }} />
+          </div>
+          <div className="flex-1 min-w-0 bg-[#140f0c]">
+            <MarkdownPreview content={val} filePath={selectedFile} />
+          </div>
+        </div>
+      ) : (
         mode === "diff" ? (
           <DiffEditor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} original={base ?? ""} modified={val} language={langOf(selectedFile)} originalModelPath={`inmemory://original/${selectedFile}`} modifiedModelPath={`inmemory://modified/${selectedFile}`}
             onMount={(e) => {

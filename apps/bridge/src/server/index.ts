@@ -119,6 +119,17 @@ app.get("/api/file", async (req, res) => {
     res.status((e as any).status ?? 500).json({ error: e.message });
   }
 });
+app.get("/api/raw", async (req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  const rel = String(req.query.path ?? "");
+  try {
+    const abs = resolveSafe(root, rel);
+    res.sendFile(abs);
+  } catch (e: any) {
+    if ((e as any).code === "ENOENT") return res.status(404).json({ error: "Not found" });
+    res.status((e as any).status ?? 500).json({ error: e.message });
+  }
+});
 app.put("/api/file", async (req, res) => {
   const root = requireRoot(res); if (!root) return;
   const { path: rel, content } = req.body ?? {};
