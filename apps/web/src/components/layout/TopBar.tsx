@@ -1,19 +1,143 @@
-import { GitBranch, Circle, FolderOpen, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { GitBranch, Circle, FolderOpen, RefreshCw, ChevronDown, Check, Loader2, AlertTriangle } from "lucide-react";
 import { useRepo } from "../../stores/repository";
 import { useGit } from "../../stores/git";
 import { useTerm } from "../../stores/terminal";
+import { api } from "../../lib/api";
 const colors: Record<string, string> = { connected: "#3fb950", working: "#d29922", idle: "#8b949e", disconnected: "#6e7681", starting: "#d29922", exited: "#f85149", error: "#f85149" };
+
 export default function TopBar({ onOpen }: { onOpen: () => void }) {
   const { name, root } = useRepo();
-  const { branch, files, isRepo, state } = useGit();
+  const { branch, files, isRepo, state, refresh } = useGit();
   const { state: oc, error } = useTerm();
+  const [open, setOpen] = useState(false);
+  const [branches, setBranches] = useState<string[]>([]);
+  const [current, setCurrent] = useState<string | null>(null);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+  const [branchError, setBranchError] = useState<string | null>(null);
+  const [switching, setSwitching] = useState<string | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  const fetchBranches = async () => {
+    if (!isRepo) return;
+    setLoadingBranches(true);
+    setBranchError(null);
+    try {
+      const r = await api.gitBranches();
+      setBranches(r.branches);
+      setCurrent(r.current);
+    } catch (e: any) {
+      setBranchError(e.message ?? String(e));
+    } finally {
+      setLoadingBranches(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) fetchBranches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // refresh branch list when git status changes elsewhere
+  useEffect(() => {
+    const h = () => { if (open) fetchBranches(); };
+    window.addEventListener("cockpit:git-branch-changed" as any, h);
+    return () => window.removeEventListener("cockpit:git-branch-changed" as any, h);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onEsc);
+    return () => { window.removeEventListener("mousedown", onDown); window.removeEventListener("keydown", onEsc); };
+  }, [open]);
+
+  const handleCheckout = async (target: string) => {
+    if (target === current || target === branch) { setOpen(false); return; }
+    setSwitching(target);
+    setBranchError(null);
+    try {
+      await api.gitCheckout(target);
+      setOpen(false);
+      // branch checkout changes files on disk: reload tree + git status
+      await Promise.all([useRepo.getState().load(), refresh()]);
+      // ensure branch list is fresh next open; also sync current immediately
+      setCurrent(target);
+    } catch (e: any) {
+      setBranchError(e.message ?? String(e));
+    } finally {
+      setSwitching(null);
+    }
+  };
+
+  const displayBranch = branch ?? (state === "detached" ? "detached" : "—");
+  const isDisabled = !isRepo;
+
   return (
     <div className="h-11 flex items-center gap-3 px-3 border-b border-[#36281e] bg-[#231a14] text-sm shrink-0">
       <span className="font-semibold text-amber-500">Wan Cockpit</span>
       <span className="text-[#5c4737]">|</span>
       <span className="text-[#ece1d8] font-medium">{name ?? "No repo"}</span>
       {root && <span className="text-xs text-[#9e8b7d] truncate max-w-[280px]">{root}</span>}
-      <span className="flex items-center gap-1 text-xs text-[#c2ab99]"><GitBranch size={13} />{branch ?? "—"}</span>
+      <div ref={wrapRef} className="relative">
+        <button
+          onClick={() => { if (!isDisabled) setOpen((v) => !v); }}
+          disabled={isDisabled}
+          title={isDisabled ? "Not a git repository" : "Switch branch"}
+          className={`flex items-center gap-1 text-xs px-1.5 py-1 rounded border ${isDisabled ? "opacity-40 cursor-not-allowed border-transparent text-[#9e8b7d]" : "bg-[#2e2118] border-[#36281e] hover:bg-[#4a3627] text-[#c2ab99] hover:text-[#ece1d8]"} `}
+        >
+          <GitBranch size={13} />
+          <span className="max-w-[160px] truncate">{displayBranch}</span>
+          {!isDisabled && <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""} text-[#9e8b7d]`} />}
+        </button>
+        {open && (
+          <div className="absolute top-8 left-0 z-50 min-w-[220px] max-w-[320px] rounded-md border border-[#36281e] bg-[#1a130f] shadow-xl overflow-hidden">
+            <div className="px-3 py-2 text-xs font-medium text-[#9e8b7d] border-b border-[#36281e] flex items-center justify-between">
+              <span>Switch branch</span>
+              <button onClick={() => fetchBranches()} className="p-1 rounded hover:bg-[#2e2118] text-[#9e8b7d] hover:text-[#ece1d8]" title="Refresh branches">
+                <RefreshCw size={12} className={loadingBranches ? "animate-spin" : ""} />
+              </button>
+            </div>
+            <div className="max-h-[260px] overflow-y-auto py-1">
+              {loadingBranches && (
+                <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#9e8b7d]"><Loader2 size={12} className="animate-spin" />Loading branches…</div>
+              )}
+              {!loadingBranches && branches.length === 0 && !branchError && (
+                <div className="px-3 py-2 text-xs text-[#9e8b7d]">No branches found.</div>
+              )}
+              {!loadingBranches && branches.map((b) => {
+                const isCurrent = b === current || b === branch;
+                const isSwitching = switching === b;
+                return (
+                  <button
+                    key={b}
+                    onClick={() => handleCheckout(b)}
+                    disabled={!!switching}
+                    className={`flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs hover:bg-[#281f18] ${isCurrent ? "bg-[#453225] text-amber-100 font-medium" : "text-[#c2ab99] hover:text-[#ece1d8]"} disabled:opacity-60`}
+                  >
+                    <GitBranch size={12} className={`shrink-0 ${isCurrent ? "text-amber-400" : "text-[#9e8b7d]"}`} />
+                    <span className="truncate flex-1">{b}</span>
+                    {isSwitching ? <Loader2 size={12} className="animate-spin shrink-0" /> : isCurrent ? <Check size={12} className="shrink-0 text-amber-400" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+            {branchError && (
+              <div className="px-3 py-2 text-xs text-red-300 border-t border-[#36281e] bg-[#3a1b18]/50 flex items-start gap-1.5">
+                <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                <span className="break-words">{branchError}</span>
+              </div>
+            )}
+            <div className="px-3 py-1.5 text-[11px] text-[#7c6a5c] border-t border-[#36281e] bg-[#140f0c]">
+              Checkout via <code className="px-1 py-0.5 rounded bg-[#231a14] border border-[#36281e]">git checkout</code>. Uncommitted changes may block switching.
+            </div>
+          </div>
+        )}
+      </div>
       <span className="text-xs px-1.5 py-0.5 rounded bg-[#2e2118] border border-[#36281e] text-[#d9cbbf]">{isRepo ? (state === "clean" ? "clean" : state + ` · ${files.length}`) : "no git"}</span>
       <div className="flex-1" />
       <span className="flex items-center gap-1.5 text-xs text-[#c2ab99]" title={error ?? oc}><Circle size={9} fill={colors[oc] ?? "#f85149"} color={colors[oc] ?? "#f85149"} />OpenCode {oc === "error" && error?.toLowerCase().includes("not found") ? "not found — install first" : oc}</span>

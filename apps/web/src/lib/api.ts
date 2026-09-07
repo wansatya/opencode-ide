@@ -26,6 +26,8 @@ export const api = {
   ocCheck: () => fetch("/api/opencode/check").then(j<{ found: boolean; path: string | null; version: string | null; hint?: string }>),
   ocStatus: () => fetch("/api/opencode/status").then(j<{ state: string; pid: number | null; exitCode: number | null; lastError: string | null; bin: string | null; version: string | null }>),
   opencodeBranches: () => fetch("/api/git/opencode-branches").then(j<{ branches: string[]; lastBranch: string | null; isGitRepository: boolean }>),
+  gitBranches: () => fetch("/api/git/branches").then(j<{ current: string | null; branches: string[]; detached: boolean; isGitRepository: boolean }>),
+  gitCheckout: (branch: string) => fetch("/api/git/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branch }) }).then(j<{ ok: boolean; branch: string; previous: string | null }>),
   browse: (p?: string) => fetch("/api/browse" + (p ? "?path=" + encodeURIComponent(p) : "")).then(j<{ path: string; parent: string | null; home: string; entries: { name: string; path: string }[] }>),
   createFile: (p: string, content?: string) => fetch("/api/fs/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p, content: content ?? "" }) }).then(j<{ path: string; hash: string }>) ,
   createDirectory: (p: string) => fetch("/api/fs/directory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) }).then(j<{ path: string }>) ,

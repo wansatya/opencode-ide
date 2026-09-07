@@ -121,6 +121,43 @@ export class GitService {
     catch { return null; }
   }
 
+  /** List all local branches, current first, with detached HEAD support. */
+  async listBranches(): Promise<{ current: string | null; branches: string[]; detached: boolean }> {
+    if (!this.root || !this.isRepo) return { current: null, branches: [], detached: false };
+    let current: string | null = null;
+    let detached = false;
+    try {
+      const { stdout } = await execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: this.root });
+      const r = stdout.trim();
+      if (r === "HEAD") { detached = true; current = null; }
+      else current = r || null;
+    } catch { detached = false; }
+    // Fallback for current via getBranch if rev-parse fails
+    if (!current && !detached) {
+      try { current = await this.getBranch(); } catch {}
+    }
+    let branches: string[] = [];
+    try {
+      const { stdout } = await execFileAsync("git", ["branch", "--format=%(refname:short)"], { cwd: this.root });
+      branches = stdout.split("\n").map((s) => s.trim()).filter(Boolean).filter((b) => !b.startsWith("(") );
+      branches.sort((a, b) => a.localeCompare(b));
+      // keep current first for convenience, then alphabetical rest is already sorted
+      if (current && branches.includes(current)) {
+        branches = [current, ...branches.filter((b) => b !== current)];
+      }
+    } catch {
+      try {
+        const out = await this.git!.branchLocal();
+        branches = out.all.filter((b) => !b.startsWith("remotes/"));
+        branches.sort((a, b) => a.localeCompare(b));
+        if (current && branches.includes(current)) branches = [current, ...branches.filter((b) => b !== current)];
+        detached = !!out.detached;
+        current = out.current || current;
+      } catch { branches = current ? [current] : []; }
+    }
+    return { current, branches, detached };
+  }
+
   /** List branches matching `opencode/*`, most-recent first. */
   async listOpencodeBranches(): Promise<string[]> {
     if (!this.root || !this.isRepo) return [];
