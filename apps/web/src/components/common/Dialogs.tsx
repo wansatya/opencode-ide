@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Folder, CornerLeftUp, House, Loader2, GitBranch, Plus } from "lucide-react";
+import { Folder, CornerLeftUp, House, Loader2, GitBranch, Plus, X, Sparkles, Code2, Terminal, Cpu, Info, Keyboard, Command } from "lucide-react";
 import { flatFiles, useRepo } from "../../stores/repository";
 import { useUI } from "../../stores/ui";
 import { useGit } from "../../stores/git";
@@ -110,6 +110,7 @@ export function CommandPalette() {
   const { palette, setPalette } = useUI();
   if (!palette) return null;
   const cmds: [string, () => void][] = [
+    ["About OpenCode IDE", () => useUI.getState().setAboutOpen(true)],
     ["Open Repository", () => window.dispatchEvent(new CustomEvent("cockpit:open-repo"))],
     ["Refresh Repository", () => { useRepo.getState().load(); useGit.getState().refresh(); }],
     ["Refresh Git Status", () => useGit.getState().refresh()],
@@ -121,6 +122,243 @@ export function CommandPalette() {
     <div className="fixed inset-0 bg-black/60 z-50 flex justify-center pt-24" onClick={() => setPalette(false)}>
       <div className="bg-[#231a14] border border-[#36281e] rounded-lg w-[520px] h-fit overflow-hidden text-[#ece1d8] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {cmds.map(([n, fn]) => <button key={n} onClick={() => { fn(); setPalette(false); }} className="block w-full text-left px-3 py-2 text-sm text-[#c2ab99] hover:bg-[#281f18] hover:text-[#ece1d8]">{n}</button>)}
+      </div>
+    </div>
+  );
+}
+
+export function AboutDialog() {
+  const { aboutOpen, setAboutOpen } = useUI();
+  const { name, root } = useRepo();
+  const { branch, state: gitState } = useGit();
+  const { state: ocState, error: ocError } = useTerm();
+  const [activeTab, setActiveTab] = useState<"about" | "shortcuts" | "system">("about");
+
+  useEffect(() => {
+    if (!aboutOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAboutOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [aboutOpen, setAboutOpen]);
+
+  if (!aboutOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={() => setAboutOpen(false)}
+    >
+      <div
+        className="bg-[#1f1712] border border-[#36281e] rounded-xl w-full max-w-lg overflow-hidden text-[#ece1d8] shadow-2xl flex flex-col max-h-[85vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative bg-gradient-to-r from-[#2c1d14] via-[#24170e] to-[#1a110a] p-5 border-b border-[#36281e]">
+          <button
+            onClick={() => setAboutOpen(false)}
+            className="absolute top-4 right-4 text-[#9e8b7d] hover:text-[#ece1d8] p-1.5 rounded-lg hover:bg-[#36281e]/60 transition-colors"
+            title="Close"
+          >
+            <X size={18} />
+          </button>
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 p-0.5 shadow-lg shadow-amber-950/40 flex items-center justify-center shrink-0">
+              <div className="w-full h-full bg-[#18110c] rounded-[10px] flex items-center justify-center">
+                <img src="/opencode.webp" alt="OpenCode Logo" className="w-7 h-7 object-contain" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-amber-200 tracking-tight">OpenCode IDE</h1>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-semibold">
+                  v0.1.0
+                </span>
+              </div>
+              <p className="text-xs text-[#a89485] mt-0.5">
+                Next-Gen Web IDE & Developer Control Center
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex border-b border-[#36281e] bg-[#17100b] px-4 pt-2 gap-2 text-xs">
+          <button
+            onClick={() => setActiveTab("about")}
+            className={`px-3 py-2 border-b-2 font-medium transition-colors flex items-center gap-1.5 ${
+              activeTab === "about"
+                ? "border-amber-500 text-amber-300"
+                : "border-transparent text-[#9e8b7d] hover:text-[#ece1d8]"
+            }`}
+          >
+            <Info size={13} />
+            About
+          </button>
+          <button
+            onClick={() => setActiveTab("shortcuts")}
+            className={`px-3 py-2 border-b-2 font-medium transition-colors flex items-center gap-1.5 ${
+              activeTab === "shortcuts"
+                ? "border-amber-500 text-amber-300"
+                : "border-transparent text-[#9e8b7d] hover:text-[#ece1d8]"
+            }`}
+          >
+            <Keyboard size={13} />
+            Shortcuts
+          </button>
+          <button
+            onClick={() => setActiveTab("system")}
+            className={`px-3 py-2 border-b-2 font-medium transition-colors flex items-center gap-1.5 ${
+              activeTab === "system"
+                ? "border-amber-500 text-amber-300"
+                : "border-transparent text-[#9e8b7d] hover:text-[#ece1d8]"
+            }`}
+          >
+            <Cpu size={13} />
+            System Status
+          </button>
+        </div>
+
+        <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+          {activeTab === "about" && (
+            <div className="space-y-4">
+              <p className="text-[#c7b7aa] leading-relaxed">
+                <strong className="text-amber-300">OpenCode IDE</strong> is a lightweight, high-performance web-based IDE engineered for rapid software development, git workflow control, and OpenCode process orchestration.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div className="p-3 rounded-lg bg-[#140f0c] border border-[#36281e]">
+                  <div className="font-semibold text-amber-400 flex items-center gap-1.5 mb-1">
+                    <Terminal size={14} /> OpenCode Engine
+                  </div>
+                  <div className="text-[11px] text-[#9e8b7d] leading-normal">
+                    Interactive terminal & AI background worker.
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#140f0c] border border-[#36281e]">
+                  <div className="font-semibold text-amber-400 flex items-center gap-1.5 mb-1">
+                    <GitBranch size={14} /> Git Cockpit
+                  </div>
+                  <div className="text-[11px] text-[#9e8b7d] leading-normal">
+                    Real-time git tracking, branch switcher & diff inspector.
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#140f0c] border border-[#36281e]">
+                  <div className="font-semibold text-amber-400 flex items-center gap-1.5 mb-1">
+                    <Code2 size={14} /> Multi-Tab Editor
+                  </div>
+                  <div className="text-[11px] text-[#9e8b7d] leading-normal">
+                    Code view, syntax highlighting & side-by-side diffing.
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#140f0c] border border-[#36281e]">
+                  <div className="font-semibold text-amber-400 flex items-center gap-1.5 mb-1">
+                    <Command size={14} /> Command Palette
+                  </div>
+                  <div className="text-[11px] text-[#9e8b7d] leading-normal">
+                    Fuzzy quick open (Ctrl+P) and command runner.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "shortcuts" && (
+            <div className="space-y-2">
+              <div className="text-[#9e8b7d] text-[11px] mb-3">
+                Keyboard shortcuts for faster navigation:
+              </div>
+              <div className="space-y-1.5 font-mono text-[11px]">
+                {[
+                  ["Quick Open File", "Ctrl + P / ⌘P"],
+                  ["Command Palette", "Ctrl + Shift + P / ⌘⇧P"],
+                  ["Toggle File Explorer", "Ctrl + B / ⌘B"],
+                  ["Toggle Terminal Panel", "Ctrl + Shift + B / ⌘⇧B"],
+                  ["Toggle Diff View", "Ctrl + Shift + D / ⌘⇧D"],
+                  ["Focus Terminal Window", "Ctrl + `"],
+                  ["Close Active Tab", "Ctrl + W / ⌘W"],
+                ].map(([label, key]) => (
+                  <div
+                    key={label}
+                    className="flex items-center justify-between p-2 rounded bg-[#140f0c] border border-[#36281e]"
+                  >
+                    <span className="font-sans text-[#c2ab99]">{label}</span>
+                    <kbd className="px-2 py-0.5 rounded bg-[#2e2118] border border-[#4a3627] text-amber-200 text-[10px]">
+                      {key}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "system" && (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-[#140f0c] border border-[#36281e] space-y-2">
+                <div className="text-[#9e8b7d] text-[11px] font-semibold uppercase tracking-wider">
+                  OpenCode Service Status
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#c2ab99]">Status</span>
+                  <span className="flex items-center gap-1.5 capitalize font-medium text-amber-300">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        ocState === "connected"
+                          ? "bg-green-400 animate-pulse"
+                          : ocState === "error"
+                          ? "bg-red-400"
+                          : "bg-amber-400"
+                      }`}
+                    />
+                    {ocState}
+                  </span>
+                </div>
+                {ocError && (
+                  <div className="text-[11px] text-red-300 bg-red-950/40 p-2 rounded border border-red-900/50">
+                    {ocError}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 rounded-lg bg-[#140f0c] border border-[#36281e] space-y-2">
+                <div className="text-[#9e8b7d] text-[11px] font-semibold uppercase tracking-wider">
+                  Workspace Environment
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#c2ab99]">Repository</span>
+                  <span className="font-mono text-amber-300">{name ?? "None"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#c2ab99]">Branch</span>
+                  <span className="font-mono text-amber-300">{branch ?? "—"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#c2ab99]">Git State</span>
+                  <span className="font-mono text-amber-300 capitalize">{gitState}</span>
+                </div>
+                {root && (
+                  <div className="pt-1.5 border-t border-[#2a1e16] text-[10px] text-[#8c7767] truncate">
+                    Path: {root}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-3 bg-[#17100b] border-t border-[#36281e] flex items-center justify-between">
+          <div className="text-[11px] text-[#7c6a5c]">
+            Built with React, Vite & OpenCode
+          </div>
+          <button
+            onClick={() => setAboutOpen(false)}
+            className="px-4 py-1.5 text-xs font-medium rounded bg-amber-700 hover:bg-amber-600 text-white transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

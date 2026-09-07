@@ -4,7 +4,7 @@ import StatusBar from "./components/layout/StatusBar";
 import RepositoryPanel from "./components/repository/RepositoryPanel";
 import EditorPanel from "./components/editor/EditorPanel";
 import TerminalPanel from "./components/terminal/TerminalPanel";
-import { RepositoryPicker, QuickOpen, CommandPalette } from "./components/common/Dialogs";
+import { RepositoryPicker, QuickOpen, CommandPalette, AboutDialog } from "./components/common/Dialogs";
 import { useRepo } from "./stores/repository";
 import { useGit } from "./stores/git";
 import { useTerm } from "./stores/terminal";
@@ -118,6 +118,7 @@ export default function App() {
       <RepositoryPicker open={picker} onClose={() => setPicker(false)} />
       <QuickOpen />
       <CommandPalette />
+      <AboutDialog />
       {msg && <div className="fixed bottom-10 left-1/2 -translate-x-1/2 text-xs bg-[#3a1b18] border border-red-500/50 text-red-200 rounded px-3 py-2 z-50">{msg}<button className="ml-2 underline hover:text-white" onClick={() => useEditor.getState().notify(null)}>dismiss</button></div>}
     </div>
   );

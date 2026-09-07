@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { GitBranch, Circle, FolderOpen, RefreshCw, ChevronDown, Check, Loader2, AlertTriangle } from "lucide-react";
+import { GitBranch, Circle, FolderOpen, RefreshCw, ChevronDown, Check, Loader2, AlertTriangle, Sparkles } from "lucide-react";
 import { useRepo } from "../../stores/repository";
 import { useGit } from "../../stores/git";
 import { useTerm } from "../../stores/terminal";
+import { useUI } from "../../stores/ui";
 import { api } from "../../lib/api";
 const colors: Record<string, string> = { connected: "#3fb950", working: "#d29922", idle: "#8b949e", disconnected: "#6e7681", starting: "#d29922", exited: "#f85149", error: "#f85149" };
 
@@ -10,6 +11,7 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
   const { name, root } = useRepo();
   const { branch, files, isRepo, state, refresh } = useGit();
   const { state: oc, error } = useTerm();
+  const setAboutOpen = useUI((s) => s.setAboutOpen);
   const [open, setOpen] = useState(false);
   const [branches, setBranches] = useState<string[]>([]);
   const [current, setCurrent] = useState<string | null>(null);
@@ -79,7 +81,14 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
 
   return (
     <div className="h-11 flex items-center gap-3 px-3 border-b border-[#36281e] bg-[#231a14] text-sm shrink-0">
-      <span className="font-semibold text-amber-500">Wan Cockpit</span>
+      <button
+        onClick={() => setAboutOpen(true)}
+        className="font-semibold text-amber-500 hover:text-amber-400 hover:bg-[#2e2118] px-1.5 py-0.5 -mx-1.5 rounded transition-colors cursor-pointer flex items-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+        title="Click to view About OpenCode IDE"
+      >
+        <img src="/opencode.webp" alt="OpenCode IDE Logo" className="w-4 h-4 object-contain shrink-0" />
+        <span>OpenCode IDE</span>
+      </button>
       <span className="text-[#5c4737]">|</span>
       <span className="text-[#ece1d8] font-medium">{name ?? "No repo"}</span>
       {root && <span className="text-xs text-[#9e8b7d] truncate max-w-[280px]">{root}</span>}
