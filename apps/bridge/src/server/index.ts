@@ -265,8 +265,11 @@ app.post("/api/git/branch/delete", async (req, res) => {
 app.get("/api/git/opencode-branches", async (_req, res) => {
   const root = requireRoot(res); if (!root) return;
   try {
-    const branches = await gitService.listOpencodeBranches();
-    res.json({ branches, lastBranch: branches[0] ?? null, isGitRepository: gitService.isRepo });
+    const opencodeBranches = await gitService.listOpencodeBranches();
+    const { branches: allRepoBranches } = await gitService.listBranches();
+    const otherBranches = allRepoBranches.filter((b) => !opencodeBranches.includes(b));
+    const combined = [...opencodeBranches, ...otherBranches];
+    res.json({ branches: combined, lastBranch: opencodeBranches[0] ?? allRepoBranches[0] ?? null, isGitRepository: gitService.isRepo });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
@@ -292,25 +295,26 @@ app.post("/api/opencode/start", async (req, res) => {
     // Auto-branch: each opencode session gets an isolated branch so `main`/`master`
     // is never overwritten directly. Must be merged manually. Default ON.
     // Opt-out via `COCKPIT_AUTO_BRANCH=0` or `{autoBranch:false}` in request.
-    // If branches with opencode/* prefix exist, require an explicit choice:
-    // `branchChoice: "new"` to create a fresh session branch, or
-    // `branchChoice: "continue"` (or a specific `opencode/...` name) to reuse.
+    // If branches exist, require an explicit choice or surface options.
     let branchInfo: { created: boolean; branch: string | null; previous: string | null; error?: string } | null = null;
     let continuedBranch: string | null = null;
     if (isAutoBranchEnabled(autoBranch)) {
       try {
         if (gitService.isRepo) {
-          const existing = await gitService.listOpencodeBranches();
-          if (existing.length > 0) {
+          const opencodeBranches = await gitService.listOpencodeBranches();
+          const { branches: allRepoBranches } = await gitService.listBranches();
+          const otherBranches = allRepoBranches.filter((b) => !opencodeBranches.includes(b));
+          const existing = [...opencodeBranches, ...otherBranches];
+          if (opencodeBranches.length > 0) {
             const choiceRaw = branchChoice as unknown;
             const choice = typeof choiceRaw === "string" ? choiceRaw.trim() : choiceRaw;
             // No explicit choice -> ask caller to choose (409 anchored by frontend dialog)
             if (choice === undefined || choice === null || choice === "") {
               return res.status(409).json({
-                error: "Existing opencode branches found — choose to create new or continue last",
+                error: "Existing opencode branches found — choose to create new or continue branch",
                 code: "BRANCH_CHOICE_REQUIRED",
                 branches: existing,
-                lastBranch: existing[0] ?? null,
+                lastBranch: opencodeBranches[0] ?? existing[0] ?? null,
               });
             }
             if (choice === "new" || choice === "create") {
@@ -324,10 +328,7 @@ app.post("/api/opencode/start", async (req, res) => {
               console.log(`auto-branch: continue ${co.previous ?? "(detached)"} -> ${target}`);
               broadcast({ type: "git.branch_created", branch: target, previous: co.previous });
               broadcast({ type: "git.status_changed" });
-            } else if (typeof choice === "string" && choice.startsWith("opencode/")) {
-              if (!existing.includes(choice)) {
-                throw Object.assign(new Error(`Branch ${choice} not found among opencode branches`), { status: 404, code: "BRANCH_NOT_FOUND" });
-              }
+            } else if (typeof choice === "string" && choice.length > 0) {
               const co = await gitService.checkoutBranch(choice);
               if (co.error) throw Object.assign(new Error(`Failed to checkout ${choice}: ${co.error}`), { status: 500, code: "BRANCH_CHECKOUT_FAILED" });
               continuedBranch = choice;
@@ -336,7 +337,7 @@ app.post("/api/opencode/start", async (req, res) => {
               broadcast({ type: "git.branch_created", branch: choice, previous: co.previous });
               broadcast({ type: "git.status_changed" });
             } else {
-              throw Object.assign(new Error(`Invalid branchChoice: ${String(choice)} — expected "new" or "continue" or an opencode/* branch name`), { status: 400, code: "INVALID_BRANCH_CHOICE" });
+              throw Object.assign(new Error(`Invalid branchChoice: ${String(choice)}`), { status: 400, code: "INVALID_BRANCH_CHOICE" });
             }
             if (branchInfo?.created && branchInfo.branch) {
               console.log(`auto-branch: ${branchInfo.previous ?? "(detached)"} -> ${branchInfo.branch}`);

@@ -98,14 +98,16 @@ export default function TerminalPanel() {
             if (!fbBranches.length && raw.includes("opencode/")) fbBranches = [raw];
           } catch {}
           const choice = await promptBranchChoice(fbBranches, fbLast);
-          if (choice === null) {
-            if (!disposedRef.current) termRef.current?.writeln("\x1b[90mStart cancelled — no branch selected.\x1b[0m");
-            set("exited");
-            setReady(true);
-            return;
+          const fallbackBranch = fbLast ?? fbBranches[0] ?? "new";
+          const effectiveChoice = choice ?? fallbackBranch;
+          branchChoice = effectiveChoice;
+          if (!disposedRef.current) {
+            if (choice === null) {
+              termRef.current?.writeln(`\x1b[90mDialog cancelled — using existing branch ${fallbackBranch}\x1b[0m`);
+            } else {
+              termRef.current?.writeln(`\x1b[90mBranch choice: ${choice === "new" ? "creating new branch" : "continuing " + choice}\x1b[0m`);
+            }
           }
-          branchChoice = choice;
-          if (!disposedRef.current) termRef.current?.writeln(`\x1b[90mBranch choice: ${choice === "new" ? "creating new branch" : "continuing " + choice}\x1b[0m`);
           r = await api.ocStart(d.cols, d.rows, branchChoice);
         } else {
           throw e;

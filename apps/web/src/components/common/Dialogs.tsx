@@ -371,23 +371,23 @@ export function BranchChoiceDialog({ open, branches, lastBranch, onChoice, onCan
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-[#231a14] border border-[#36281e] rounded-lg p-5 w-[520px] max-h-[80vh] flex flex-col text-[#ece1d8] shadow-2xl">
-        <h2 className="font-semibold mb-1 text-amber-200 flex items-center gap-2"><GitBranch size={16} /> OpenCode branches found</h2>
-        <p className="text-xs text-[#9e8b7d] mb-3">This repository has existing <code className="px-1 py-0.5 rounded bg-[#140f0c] border border-[#36281e]">opencode/*</code> branches. Do you want to continue the last session or start a fresh one?</p>
+        <h2 className="font-semibold mb-1 text-amber-200 flex items-center gap-2"><GitBranch size={16} /> Repository branches found</h2>
+        <p className="text-xs text-[#9e8b7d] mb-3">Select a branch to continue your session or create a new branch for this OpenCode instance.</p>
         <div className="rounded border border-[#36281e] bg-[#140f0c] p-3 mb-3">
-          <div className="text-xs text-[#9e8b7d] mb-2">Most recent branch:</div>
+          <div className="text-xs text-[#9e8b7d] mb-2">Most recent session branch:</div>
           <div className="flex items-center gap-2 text-sm font-mono bg-[#231a14] border border-[#36281e] rounded px-2 py-1.5">
             <GitBranch size={14} className="text-amber-400 shrink-0" />
             <span className="truncate text-amber-100">{lastBranch ?? branches[0] ?? "—"}</span>
           </div>
           {branches.length > 1 && (
             <div className="mt-3">
-              <label className="text-xs text-[#9e8b7d]">Or pick another opencode branch:</label>
+              <label className="text-xs text-[#9e8b7d]">Or pick another branch from this repository:</label>
               <select value={selected} onChange={(e) => setSelected(e.target.value)} className="mt-1 w-full px-2 py-1.5 rounded bg-[#231a14] border border-[#36281e] text-sm text-[#ece1d8] outline-none focus:border-[#d97706]">
                 {branches.map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
             </div>
           )}
-          {branches.length > 1 && <div className="text-[11px] text-[#9e8b7d] mt-1">{branches.length} opencode branches total</div>}
+          {branches.length > 1 && <div className="text-[11px] text-[#9e8b7d] mt-1">{branches.length} branches total</div>}
         </div>
         <div className="flex justify-end gap-2">
           <button onClick={onCancel} className="px-3 py-1.5 text-sm rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]">Cancel</button>
