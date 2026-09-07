@@ -5,6 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 import { api, wsUrl } from "../../lib/api";
 import { useTerm } from "../../stores/terminal";
 import { Play, Square } from "lucide-react";
+import StartupVisualization from "./StartupVisualization";
 
 const INSTALL_MSG = "opencode not found — install it first (https://opencode.ai), then restart the bridge.";
 const IDLE_MSG = "opencode is not running — press Start to launch it in the open repository.";
@@ -18,7 +19,7 @@ export default function TerminalPanel() {
   const wsRef = useRef<WebSocket | null>(null);
   const startingRef = useRef(false);
   const disposedRef = useRef(false);
-  const { state, set, error, found, bin, setCheck } = useTerm();
+  const { state, set, error, found, bin, setCheck, ready, setReady } = useTerm();
 
   const safeFit = () => {
     if (disposedRef.current) return false;
@@ -65,6 +66,7 @@ export default function TerminalPanel() {
       } catch { return; }
     }
     startingRef.current = true;
+    setReady(false);
     set("starting");
     if (!disposedRef.current) termRef.current?.writeln("\x1b[90mStarting opencode…\x1b[0m");
     try {
@@ -82,6 +84,7 @@ export default function TerminalPanel() {
       const notFound = e.code === "OPENCODE_NOT_FOUND" || /not found/i.test(msg);
       if (notFound) setCheck(false);
       set("error", msg);
+      setReady(true);
       termRef.current?.writeln("\x1b[31m" + msg + "\x1b[0m");
       if (notFound) termRef.current?.writeln("\x1b[33m" + INSTALL_MSG + "\x1b[0m");
     } finally { startingRef.current = false; }
@@ -142,6 +145,9 @@ export default function TerminalPanel() {
       if (disposedRef.current || !termRef.current) return;
       try { term.write(data); } catch { }
     };
+    const markReady = () => {
+      if (!useTerm.getState().ready) useTerm.getState().setReady(true);
+    };
     // Wait a frame so flex layout settles before first fit (0-size fit
     // corrupts the viewport and crashes later in syncScrollArea).
     let raf = 0;
@@ -168,11 +174,11 @@ export default function TerminalPanel() {
         // panel with stale exit text.
         if (typeof data === "string") {
           if (data.includes("[process exited")) return;
-          write(data); return;
+          write(data); markReady(); return;
         }
-        if (data instanceof ArrayBuffer) { write(new Uint8Array(data)); return; }
+        if (data instanceof ArrayBuffer) { write(new Uint8Array(data)); markReady(); return; }
         if (data instanceof Blob) {
-          void data.text().then((t) => { write(t); });
+          void data.text().then((t) => { write(t); markReady(); });
           return;
         }
       };
@@ -297,6 +303,7 @@ export default function TerminalPanel() {
     if (!disposedRef.current) {
       try { termRef.current?.clear(); } catch { }
     }
+    setReady(true);
     set("exited");
   };
 
@@ -319,8 +326,9 @@ export default function TerminalPanel() {
       {found === false && state !== "starting" && (
         <div className="px-2 py-1.5 text-xs bg-[#382b1c] border-b border-amber-500/40 text-amber-200 shrink-0">{INSTALL_MSG}</div>
       )}
-      <div className="flex-1 min-h-0 bg-[#140f0c] p-0 overflow-hidden">
+      <div className="flex-1 min-h-0 bg-[#140f0c] p-0 overflow-hidden relative">
         <div ref={ref} className="h-full w-full" />
+        {state === "starting" && <StartupVisualization bin={bin} />}
       </div>
     </div>
   );
