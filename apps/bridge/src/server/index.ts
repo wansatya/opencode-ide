@@ -182,6 +182,16 @@ app.get("/api/git/head", async (req, res) => {
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
+function isAutoBranchEnabled(bodyVal?: unknown): boolean {
+  const raw = (process.env.COCKPIT_AUTO_BRANCH ?? "").trim().toLowerCase();
+  // default true when env not set
+  let enabled = true;
+  if (["0", "false", "off", "no", "disable", "disabled"].includes(raw)) enabled = false;
+  if (bodyVal === false || bodyVal === 0 || bodyVal === "0" || bodyVal === "false" || bodyVal === "off" || bodyVal === "no") enabled = false;
+  else if (bodyVal === true || bodyVal === 1 || bodyVal === "1" || bodyVal === "true" || bodyVal === "on") enabled = true;
+  return enabled;
+}
+
 app.get("/api/opencode/check", async (_req, res) => {
   try { res.json(await openCodeService.check()); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -190,11 +200,36 @@ app.get("/api/opencode/status", (_req, res) => res.json(openCodeService.status()
 app.post("/api/opencode/start", async (req, res) => {
   const root = requireRoot(res); if (!root) return;
   try {
-    const { cols, rows, args } = req.body ?? {};
+    const { cols, rows, args, autoBranch } = req.body ?? {};
+    // Auto-branch: each opencode session gets an isolated branch so `main`/`master`
+    // is never overwritten directly. Must be merged manually. Default ON.
+    // Opt-out via `COCKPIT_AUTO_BRANCH=0` or `{autoBranch:false}` in request.
+    let branchInfo: { created: boolean; branch: string | null; previous: string | null; error?: string } | null = null;
+    if (isAutoBranchEnabled(autoBranch)) {
+      try {
+        branchInfo = await gitService.createSessionBranch();
+        if (branchInfo.created && branchInfo.branch) {
+          console.log(`auto-branch: ${branchInfo.previous ?? "(detached)"} -> ${branchInfo.branch}`);
+          broadcast({ type: "git.status_changed" });
+          broadcast({ type: "git.branch_created", branch: branchInfo.branch, previous: branchInfo.previous });
+        } else if (branchInfo.error) {
+          // Only block when we are actually in a git repo — non-repo workspaces are allowed to start.
+          if (gitService.isRepo) {
+            throw Object.assign(new Error(`Failed to create session branch: ${branchInfo.error}. Disable with COCKPIT_AUTO_BRANCH=0 or {autoBranch:false}.`), { status: 500, code: "BRANCH_CREATE_FAILED" });
+          }
+        }
+      } catch (e: any) {
+        if (e?.code === "BRANCH_CREATE_FAILED") throw e;
+        // creation failure outside repo is non-fatal; inside repo surface as warning but still allow start? We choose to warn.
+        console.error(`auto-branch warning: ${e?.message ?? e}`);
+      }
+    }
     const r = await openCodeService.start(root, cols ?? 120, rows ?? 30, args ?? []);
     if (openCodeService.state !== "running") throw Object.assign(new Error(openCodeService.lastError ?? "opencode failed to stay running"), { status: 500, code: "NOT_RUNNING" });
     broadcast({ type: "opencode.state", state: "connected" });
-    res.json({ ...r, state: openCodeService.state, bin: openCodeService.bin, version: openCodeService.version });
+    // also refresh git status for the new branch visibility
+    if (branchInfo?.created) broadcast({ type: "git.status_changed" });
+    res.json({ ...r, state: openCodeService.state, bin: openCodeService.bin, version: openCodeService.version, branch: branchInfo?.branch ?? null, previousBranch: branchInfo?.previous ?? null });
   } catch (e: any) {
     broadcast({ type: "opencode.state", state: "error", error: e.message, code: e.code });
     res.status(e.status ?? 500).json({ error: e.message, code: e.code, exitCode: e.exitCode });

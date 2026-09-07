@@ -120,5 +120,39 @@ export class GitService {
     try { const { stdout } = await execFileAsync("git", ["show", `HEAD:${this.fromWorkspace(relPath)}`], { cwd: this.root, maxBuffer: 10 * 1024 * 1024 }); return stdout; }
     catch { return null; }
   }
+
+  /**
+   * Create an isolated session branch for the current opencode session.
+   * Default behaviour is to create `opencode/session-YYYYMMDD-HHMMSS-xxxx`
+   * from current HEAD via `git checkout -b`. Dirty working tree is carried
+   * over (git allows checkout -b with modifications). The branch must be
+   * merged manually — this prevents production code (main/master) being
+   * overwritten directly.
+   *
+   * Returns {created, branch, previous}. No-op if not a git repo.
+   */
+  async createSessionBranch(): Promise<{ created: boolean; branch: string | null; previous: string | null; error?: string }> {
+    if (!this.root || !this.isRepo) return { created: false, branch: null, previous: null };
+    let previous: string | null = null;
+    try { previous = await this.getBranch(); } catch {}
+    // Fallback for detached HEAD: getBranch returns null, but we still want to branch from HEAD
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const rand = Math.random().toString(36).slice(2, 6);
+      const name = `opencode/session-${stamp}-${rand}`;
+      try {
+        await execFileAsync("git", ["checkout", "-b", name], { cwd: this.root });
+        // refresh internal cached branch state is lazy via getStatus(); nothing else needed
+        return { created: true, branch: name, previous };
+      } catch (e: any) {
+        const msg: string = e?.stderr ?? e?.stdout ?? e?.message ?? String(e);
+        if (msg.includes("already exists") && attempt < 2) continue;
+        return { created: false, branch: null, previous, error: msg.trim().slice(0, 500) };
+      }
+    }
+    return { created: false, branch: null, previous, error: "failed to generate unique branch name" };
+  }
 }
 export const gitService = new GitService();

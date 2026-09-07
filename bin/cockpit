@@ -36,12 +36,19 @@ start options:
   --prod          Serve the production build on :$BRIDGE_PORT (needs npm run build)
                   Default is dev mode: vite on :$WEB_PORT + bridge on :$BRIDGE_PORT
   --no-browser    Don't open the browser automatically
+  --no-branch     Don't auto-create a session branch (default: auto-branch ON;
+                  each opencode session branches from HEAD as opencode/session-*)
+  --branch        Explicitly enable auto-branch (default ON, overrides COCKPIT_AUTO_BRANCH=0)
   -f, --foreground
                   Run in the foreground instead of backgrounding
+
+Env:
+  COCKPIT_AUTO_BRANCH=0  Disable auto-branch for all starts (same as --no-branch)
 
 Examples:
   cockpit start ~/projects/my-app
   cockpit start . --prod
+  cockpit start . --no-branch        # work directly on current branch
 EOF
 }
 
@@ -226,11 +233,13 @@ VITE_BIN="$REPO_DIR/node_modules/.bin/vite"
 
 # ---- commands ---------------------------------------------------------------
 cmd_start() {
-  local target="" prod=0 browser=1 foreground=0
+  local target="" prod=0 browser=1 foreground=0 auto_branch="" # "" = default ON, "1"/"0" = explicit
   for arg in "$@"; do
     case "$arg" in
       --prod) prod=1 ;;
       --no-browser) browser=0 ;;
+      --no-branch) auto_branch=0 ;;
+      --branch|--auto-branch) auto_branch=1 ;;
       -f|--foreground) foreground=1 ;;
       -h|--help) usage; return 0 ;;
       --) ;;
@@ -240,6 +249,15 @@ cmd_start() {
          fi ;;
     esac
   done
+  # Resolve branch flag to env var — only set when explicitly requested so
+  # COCKPIT_AUTO_BRANCH already in the environment and the server default (ON)
+  # are respected otherwise.
+  local branch_env=""
+  if [ -n "$auto_branch" ]; then
+    branch_env="COCKPIT_AUTO_BRANCH=$auto_branch"
+  elif [ -n "${COCKPIT_AUTO_BRANCH:-}" ]; then
+    branch_env="COCKPIT_AUTO_BRANCH=$COCKPIT_AUTO_BRANCH"
+  fi
 
   local root_env="" url=""
   if [ -n "$target" ]; then
