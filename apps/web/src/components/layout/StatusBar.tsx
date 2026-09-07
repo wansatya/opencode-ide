@@ -1,38 +1,16 @@
-export type ApiError = Error & { code?: string; exitCode?: number; branches?: string[]; lastBranch?: string | null };
-async function j<T>(r: Response): Promise<T> {
-  if (!r.ok) {
-    const body = await r.json().catch(() => ({ error: r.statusText }));
-    const e = new Error(body.error ?? r.statusText) as ApiError;
-    e.code = body.code;
-    e.exitCode = body.exitCode;
-    if (Array.isArray(body.branches)) (e as any).branches = body.branches;
-    if (body.lastBranch !== undefined) (e as any).lastBranch = body.lastBranch;
-    throw e;
-  }
-  return r.json();
+import { useGit } from "../../stores/git";
+import { useTerm } from "../../stores/terminal";
+export default function StatusBar() {
+  const { files, branch } = useGit();
+  const { state } = useTerm();
+  const added = files.filter((f) => f.status === "added" || f.status === "untracked").length;
+  const mod = files.filter((f) => f.status === "modified").length;
+  return (
+    <div className="h-7 flex items-center gap-3 px-3 text-xs text-[#9e8b7d] border-t border-[#36281e] bg-[#231a14] shrink-0">
+      <span>{files.length} changed · {added} added · {mod} modified</span>
+      <span>branch: {branch ?? "—"}</span>
+      <div className="flex-1" />
+      <span>{state === "connected" || state === "working" ? "process running" : state}</span>
+    </div>
+  );
 }
-export const api = {
-  workspace: () => fetch("/api/workspace").then(j<{ root: string | null; name: string | null }>),
-  openWorkspace: (path: string) => fetch("/api/workspace/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }) }).then(j<{ root: string; isGitRepository: boolean }>),
-  tree: () => fetch("/api/tree").then(j<{ root: string; tree: import("../types").FileNode[]; truncated?: boolean }>),
-  file: (p: string) => fetch("/api/file?path=" + encodeURIComponent(p)).then(j<{ path: string; content?: string; binary?: boolean; tooLarge?: boolean; size: number; modifiedAt: number; hash?: string }>),
-  saveFile: (p: string, content: string) => fetch("/api/file", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p, content }) }).then(j<{ hash: string }>) ,
-  gitStatus: () => fetch("/api/git/status").then(j<{ isGitRepository: boolean; branch: string | null; files: import("../types").GitFile[]; ahead: number; behind: number; state: string }>),
-  gitDiff: (p: string) => fetch("/api/git/diff?path=" + encodeURIComponent(p)).then(j<{ diff: string }>),
-  gitHead: (p: string) => fetch("/api/git/head?path=" + encodeURIComponent(p)).then(j<{ content: string | null }>),
-  ocStart: (cols: number, rows: number, branchChoice?: string) => fetch("/api/opencode/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cols, rows, ...(branchChoice ? { branchChoice } : {}) }) }).then(j<{ state: string; pid?: number; bin?: string; version?: string; branch?: string | null; previousBranch?: string | null }>),
-  ocStop: () => fetch("/api/opencode/stop", { method: "POST" }).then(j<{ ok: boolean }>),
-  ocResize: (cols: number, rows: number) => fetch("/api/opencode/resize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cols, rows }) }).catch(() => ({})),
-  ocCheck: () => fetch("/api/opencode/check").then(j<{ found: boolean; path: string | null; version: string | null; hint?: string }>),
-  ocStatus: () => fetch("/api/opencode/status").then(j<{ state: string; pid: number | null; exitCode: number | null; lastError: string | null; bin: string | null; version: string | null }>),
-  opencodeBranches: () => fetch("/api/git/opencode-branches").then(j<{ branches: string[]; lastBranch: string | null; isGitRepository: boolean }>),
-  gitBranches: () => fetch("/api/git/branches").then(j<{ current: string | null; branches: string[]; detached: boolean; isGitRepository: boolean }>),
-  gitCheckout: (branch: string) => fetch("/api/git/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branch }) }).then(j<{ ok: boolean; branch: string; previous: string | null }>),
-  gitMerge: (branch: string, deleteAfter?: boolean) => fetch("/api/git/merge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branch, deleteAfter: !!deleteAfter }) }).then(j<{ ok: boolean; branch: string; previous: string | null; output: string; deleted?: boolean; deleteError?: string }>),
-  gitBranchDelete: (branch: string) => fetch("/api/git/branch/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branch }) }).then(j<{ ok: boolean; branch: string; deleted: boolean }>),
-  browse: (p?: string) => fetch("/api/browse" + (p ? "?path=" + encodeURIComponent(p) : "")).then(j<{ path: string; parent: string | null; home: string; entries: { name: string; path: string }[] }>),
-  createFile: (p: string, content?: string) => fetch("/api/fs/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p, content: content ?? "" }) }).then(j<{ path: string; hash: string }>) ,
-  createDirectory: (p: string) => fetch("/api/fs/directory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) }).then(j<{ path: string }>) ,
-  deletePath: (p: string) => fetch("/api/fs?path=" + encodeURIComponent(p), { method: "DELETE" }).then(j<{ path: string; type: string }>) ,
-};
-export function wsUrl(p: string) { const proto = location.protocol === "https:" ? "wss:" : "ws:"; return proto + "//" + location.host + p; }
