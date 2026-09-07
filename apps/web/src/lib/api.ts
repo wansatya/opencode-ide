@@ -1,10 +1,12 @@
-export type ApiError = Error & { code?: string; exitCode?: number };
+export type ApiError = Error & { code?: string; exitCode?: number; branches?: string[]; lastBranch?: string | null };
 async function j<T>(r: Response): Promise<T> {
   if (!r.ok) {
     const body = await r.json().catch(() => ({ error: r.statusText }));
     const e = new Error(body.error ?? r.statusText) as ApiError;
     e.code = body.code;
     e.exitCode = body.exitCode;
+    if (Array.isArray(body.branches)) (e as any).branches = body.branches;
+    if (body.lastBranch !== undefined) (e as any).lastBranch = body.lastBranch;
     throw e;
   }
   return r.json();
@@ -18,11 +20,12 @@ export const api = {
   gitStatus: () => fetch("/api/git/status").then(j<{ isGitRepository: boolean; branch: string | null; files: import("../types").GitFile[]; ahead: number; behind: number; state: string }>),
   gitDiff: (p: string) => fetch("/api/git/diff?path=" + encodeURIComponent(p)).then(j<{ diff: string }>),
   gitHead: (p: string) => fetch("/api/git/head?path=" + encodeURIComponent(p)).then(j<{ content: string | null }>),
-  ocStart: (cols: number, rows: number) => fetch("/api/opencode/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cols, rows }) }).then(j<{ state: string; pid?: number; bin?: string; version?: string }>),
+  ocStart: (cols: number, rows: number, branchChoice?: string) => fetch("/api/opencode/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cols, rows, ...(branchChoice ? { branchChoice } : {}) }) }).then(j<{ state: string; pid?: number; bin?: string; version?: string; branch?: string | null; previousBranch?: string | null }>),
   ocStop: () => fetch("/api/opencode/stop", { method: "POST" }).then(j<{ ok: boolean }>),
   ocResize: (cols: number, rows: number) => fetch("/api/opencode/resize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cols, rows }) }).catch(() => ({})),
   ocCheck: () => fetch("/api/opencode/check").then(j<{ found: boolean; path: string | null; version: string | null; hint?: string }>),
   ocStatus: () => fetch("/api/opencode/status").then(j<{ state: string; pid: number | null; exitCode: number | null; lastError: string | null; bin: string | null; version: string | null }>),
+  opencodeBranches: () => fetch("/api/git/opencode-branches").then(j<{ branches: string[]; lastBranch: string | null; isGitRepository: boolean }>),
   browse: (p?: string) => fetch("/api/browse" + (p ? "?path=" + encodeURIComponent(p) : "")).then(j<{ path: string; parent: string | null; home: string; entries: { name: string; path: string }[] }>),
   createFile: (p: string, content?: string) => fetch("/api/fs/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p, content: content ?? "" }) }).then(j<{ path: string; hash: string }>) ,
   createDirectory: (p: string) => fetch("/api/fs/directory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) }).then(j<{ path: string }>) ,
