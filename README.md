@@ -40,7 +40,9 @@ npm run dev      # web http://localhost:5173 + bridge http://localhost:3101
 npm run build && npm start   # production
 ```
 
-1. Open the UI  2. Pick a repo (or it opens the one you passed to `cockpit start`)  3. Click **Start** in the terminal panel to launch `opencode`.
+1. Open the UI  
+2. Pick a repo (or it opens the one you passed to `cockpit start`)  
+3. Click **Start** in the terminal panel to launch `opencode`.
 
 Other commands: `cockpit start . --no-browser` (don't open browser), `cockpit start . --no-branch` (work on current branch directly).
 
