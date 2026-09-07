@@ -205,6 +205,52 @@ app.post("/api/git/checkout", async (req, res) => {
     res.json({ ok: true, branch: result.branch, previous: result.previous });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
+app.post("/api/git/merge", async (req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  const branch = String(req.body?.branch ?? "").trim();
+  const deleteAfter = req.body?.deleteAfter === true || req.body?.deleteAfter === "true" || req.body?.deleteAfter === 1;
+  if (!branch) return res.status(400).json({ error: "branch required" });
+  if (/[\x00\n\r]/.test(branch)) return res.status(400).json({ error: "invalid branch name" });
+  if (branch.startsWith("-")) return res.status(400).json({ error: "invalid branch name" });
+  try {
+    const result = await gitService.mergeBranch(branch);
+    if (result.error) {
+      // still broadcast status so conflict indicators appear
+      broadcast({ type: "git.status_changed" });
+      return res.status(409).json({ error: result.error, output: result.output, conflict: !!result.conflict, branch: result.branch, previous: result.previous });
+    }
+    let deleted: boolean | undefined;
+    let deleteError: string | undefined;
+    if (deleteAfter) {
+      const del = await gitService.deleteBranch(branch);
+      deleted = del.deleted;
+      deleteError = del.error;
+      if (!del.deleted && del.error) {
+        // merge succeeded but delete failed — inform caller but keep success
+        broadcast({ type: "git.status_changed" });
+        return res.json({ ok: true, branch: result.branch, previous: result.previous, output: result.output, deleted: false, deleteError: del.error });
+      }
+    }
+    broadcast({ type: "git.status_changed" });
+    // branch delete changes branch list
+    if (deleted) broadcast({ type: "git.branch_changed", branch: result.previous, previous: branch });
+    res.json({ ok: true, branch: result.branch, previous: result.previous, output: result.output, deleted: deleted ?? false, deleteError });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/git/branch/delete", async (req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  const branch = String(req.body?.branch ?? "").trim();
+  if (!branch) return res.status(400).json({ error: "branch required" });
+  if (/[\x00\n\r]/.test(branch)) return res.status(400).json({ error: "invalid branch name" });
+  if (branch.startsWith("-")) return res.status(400).json({ error: "invalid branch name" });
+  try {
+    const r = await gitService.deleteBranch(branch);
+    if (!r.deleted) return res.status(409).json({ error: r.error, branch });
+    broadcast({ type: "git.status_changed" });
+    broadcast({ type: "git.branch_changed", branch: await gitService.getBranch().catch(() => null), previous: branch });
+    res.json({ ok: true, branch, deleted: true });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
 app.get("/api/git/opencode-branches", async (_req, res) => {
   const root = requireRoot(res); if (!root) return;
   try {

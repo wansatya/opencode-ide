@@ -28,6 +28,8 @@ export const api = {
   opencodeBranches: () => fetch("/api/git/opencode-branches").then(j<{ branches: string[]; lastBranch: string | null; isGitRepository: boolean }>),
   gitBranches: () => fetch("/api/git/branches").then(j<{ current: string | null; branches: string[]; detached: boolean; isGitRepository: boolean }>),
   gitCheckout: (branch: string) => fetch("/api/git/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branch }) }).then(j<{ ok: boolean; branch: string; previous: string | null }>),
+  gitMerge: (branch: string, deleteAfter?: boolean) => fetch("/api/git/merge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branch, deleteAfter: !!deleteAfter }) }).then(j<{ ok: boolean; branch: string; previous: string | null; output: string; deleted?: boolean; deleteError?: string }>),
+  gitBranchDelete: (branch: string) => fetch("/api/git/branch/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branch }) }).then(j<{ ok: boolean; branch: string; deleted: boolean }>),
   browse: (p?: string) => fetch("/api/browse" + (p ? "?path=" + encodeURIComponent(p) : "")).then(j<{ path: string; parent: string | null; home: string; entries: { name: string; path: string }[] }>),
   createFile: (p: string, content?: string) => fetch("/api/fs/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p, content: content ?? "" }) }).then(j<{ path: string; hash: string }>) ,
   createDirectory: (p: string) => fetch("/api/fs/directory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) }).then(j<{ path: string }>) ,

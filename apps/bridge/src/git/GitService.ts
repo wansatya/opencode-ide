@@ -197,6 +197,44 @@ export class GitService {
     }
   }
 
+  /** Merge a branch into the current branch. */
+  async mergeBranch(source: string): Promise<{ previous: string | null; branch: string; output: string; error?: string; conflict?: boolean }> {
+    if (!this.root || !this.isRepo) return { previous: null, branch: source, output: "", error: "Not a git repository" };
+    const s = source.trim();
+    if (!s) return { previous: null, branch: source, output: "", error: "branch required" };
+    let previous: string | null = null;
+    try { previous = await this.getBranch(); } catch {}
+    if (previous && s === previous) return { previous, branch: s, output: "", error: "Cannot merge a branch into itself" };
+    try {
+      const { stdout, stderr } = await execFileAsync("git", ["merge", s], { cwd: this.root, maxBuffer: 10 * 1024 * 1024 });
+      const out = (stdout + (stderr ? "\n" + stderr : "")).trim();
+      return { previous, branch: s, output: out || "Merged successfully" };
+    } catch (e: any) {
+      const stdout: string = e?.stdout ?? "";
+      const stderr: string = e?.stderr ?? "";
+      const msg: string = (stdout + (stderr ? "\n" + stderr : "") || e?.message || String(e)).trim();
+      const isConflict = /CONFLICT/i.test(msg) || /Automatic merge failed/i.test(msg) || /conflict/i.test(msg);
+      return { previous, branch: s, output: msg.slice(0, 2000), error: msg.slice(0, 800), conflict: isConflict };
+    }
+  }
+
+  /** Delete a local branch (safe delete with -d). */
+  async deleteBranch(name: string): Promise<{ deleted: boolean; error?: string }> {
+    if (!this.root || !this.isRepo) return { deleted: false, error: "Not a git repository" };
+    const s = name.trim();
+    if (!s) return { deleted: false, error: "branch required" };
+    let current: string | null = null;
+    try { current = await this.getBranch(); } catch {}
+    if (current && s === current) return { deleted: false, error: "Cannot delete current branch" };
+    try {
+      await execFileAsync("git", ["branch", "-d", s], { cwd: this.root });
+      return { deleted: true };
+    } catch (e: any) {
+      const msg: string = (e?.stderr ?? e?.stdout ?? e?.message ?? String(e)).trim().slice(0, 500);
+      return { deleted: false, error: msg };
+    }
+  }
+
   /**
    * Create an isolated session branch for the current opencode session.
    * Default behaviour is to create `opencode/session-YYYYMMDD-HHMMSS-xxxx`
