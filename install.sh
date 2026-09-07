@@ -1,29 +1,55 @@
 #!/usr/bin/env bash
-# OpenCode Cockpit installer — curl-pipeable:
-#   curl -fsSL https://raw.githubusercontent.com/wansatya/opencode-ide/main/install.sh | bash
-# Or with options (note the `-s --` passthrough):
-#   curl -fsSL .../install.sh | bash -s -- --dir ~/cockpit --no-build
+# OpenCode IDE Installer — Cross-Platform (macOS, Linux, Windows)
 #
-# Env overrides: COCKPIT_REPO_URL, COCKPIT_DIR, COCKPIT_BIN_DIR
+# Quick Install:
+#   curl -fsSL https://raw.githubusercontent.com/wansatya/opencode-ide/main/install.sh | bash
+#
+# Custom Install Options (note the `-s --` passthrough):
+#   curl -fsSL .../install.sh | bash -s -- --dir ~/my-ide --no-build
+#
+# Supported Operating Systems:
+#   - macOS (Intel & Apple Silicon)
+#   - Linux (Ubuntu, Debian, Fedora, Arch, Alpine, WSL)
+#   - Windows (Git Bash, MSYS2, Cygwin, PowerShell, CMD)
+#
+# Env Overrides: COCKPIT_REPO_URL, COCKPIT_DIR, COCKPIT_BIN_DIR
 set -euo pipefail
 
-# >>> EDIT ME: point this at your GitHub repo before sharing the curl link.
+# Detect Operating System
+OS_NAME="$(uname -s 2>/dev/null || echo "Unknown")"
+case "$OS_NAME" in
+  Darwin*)  PLATFORM="macOS" ;;
+  Linux*)   PLATFORM="Linux" ;;
+  MINGW*|MSYS*|CYGWIN*|Windows_NT*) PLATFORM="Windows" ;;
+  *)        PLATFORM="$OS_NAME" ;;
+esac
+
+DEFAULT_INSTALL_DIR="$HOME/.opencode-ide"
+DEFAULT_BIN_DIR="$HOME/.local/bin"
+
+# On Windows Git Bash/MSYS, fallback to ~/bin if ~/.local/bin does not exist
+if [ "$PLATFORM" = "Windows" ] && [ ! -d "$DEFAULT_BIN_DIR" ] && [ -d "$HOME/bin" ]; then
+  DEFAULT_BIN_DIR="$HOME/bin"
+fi
+
 REPO_URL="${COCKPIT_REPO_URL:-https://github.com/wansatya/opencode-ide.git}"
-INSTALL_DIR="${COCKPIT_DIR:-$HOME/.opencode-ide}"
-BIN_DIR="${COCKPIT_BIN_DIR:-$HOME/.local/bin}"
+INSTALL_DIR="${COCKPIT_DIR:-$DEFAULT_INSTALL_DIR}"
+BIN_DIR="${COCKPIT_BIN_DIR:-$DEFAULT_BIN_DIR}"
 WITH_BUILD=1
 
 usage() {
   cat <<EOF
-Install OpenCode Cockpit from GitHub.
+OpenCode IDE Cross-Platform Installer ($PLATFORM)
 
 Usage:
   install.sh [--repo URL] [--dir PATH] [--bin-dir PATH] [--no-build]
 
+Options:
   --repo URL     Git URL to clone (default: $REPO_URL)
-  --dir PATH     Where to clone (default: $INSTALL_DIR)
-  --bin-dir PATH Where to link the \`cockpit\` command (default: $BIN_DIR)
-  --no-build     Skip \`npm run build\` (use dev mode only)
+  --dir PATH     Directory to clone into (default: $INSTALL_DIR)
+  --bin-dir PATH Path to install executable link/launcher (default: $BIN_DIR)
+  --no-build     Skip production build (use development server only)
+  -h, --help     Show this help message
 EOF
 }
 
@@ -38,12 +64,26 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+echo "=========================================="
+echo "  Installing OpenCode IDE ($PLATFORM)"
+echo "=========================================="
+
 need() {
   command -v "$1" >/dev/null 2>&1 || {
     echo "Missing required tool: $1" >&2
     case "$1" in
-      node) echo "Install Node.js 20+ from https://nodejs.org" >&2 ;;
-      git) echo "Install git from https://git-scm.com" >&2 ;;
+      node)
+        echo "Install Node.js 20+ from https://nodejs.org" >&2
+        if [ "$PLATFORM" = "macOS" ]; then
+          echo "  (macOS tip: brew install node@20)" >&2
+        fi
+        ;;
+      git)
+        echo "Install Git from https://git-scm.com" >&2
+        if [ "$PLATFORM" = "macOS" ]; then
+          echo "  (macOS tip: brew install git)" >&2
+        fi
+        ;;
     esac
     exit 1
   }
@@ -53,57 +93,95 @@ need git
 need node
 need npm
 
-# Enforce Node >= 20 (bridge uses modern APIs).
-NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
+# Enforce Node >= 20
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo "0")"
 if [ "$NODE_MAJOR" -lt 20 ]; then
-  echo "Node 20+ required (found $(node -v)). Upgrade from https://nodejs.org" >&2
+  echo "Node.js 20+ is required (found Node $(node -v)). Please upgrade from https://nodejs.org" >&2
   exit 1
 fi
 
 if [ -e "$INSTALL_DIR" ]; then
-  echo "Removing existing checkout at $INSTALL_DIR…"
+  echo "Removing previous installation at $INSTALL_DIR…"
   rm -rf "$INSTALL_DIR"
 fi
+
 echo "Cloning $REPO_URL → $INSTALL_DIR…"
 git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
 
-echo "Installing dependencies…"
+echo "Installing workspace dependencies…"
 (cd "$INSTALL_DIR" && npm install)
 
-# Guard: the checkout must contain the launcher (older clones predate
-# bin/cockpit, which used to be git-ignored). Fail here with a clear message
-# instead of a cryptic chmod/ln error later.
 if [ ! -f "$INSTALL_DIR/bin/cockpit" ]; then
-  echo "Error: $INSTALL_DIR/bin/cockpit not found." >&2
-  echo "Your checkout is outdated (or cloned from a repo/branch without it)." >&2
-  echo "Fix: cd $INSTALL_DIR && git pull && re-run this installer." >&2
+  echo "Error: Launcher file $INSTALL_DIR/bin/cockpit was not found." >&2
   exit 1
 fi
 
 if [ "$WITH_BUILD" -eq 1 ]; then
-  echo "Building web + bridge…"
+  echo "Building OpenCode IDE web & bridge apps…"
   (cd "$INSTALL_DIR" && npm run build)
 fi
 
 mkdir -p "$BIN_DIR"
-ln -sf "$INSTALL_DIR/bin/cockpit" "$BIN_DIR/cockpit"
 chmod +x "$INSTALL_DIR/bin/cockpit" "$INSTALL_DIR/install.sh"
-"$BIN_DIR/cockpit" --version
 
-echo ""
-echo "Done. Next steps:"
-if ! echo ":$PATH:" | grep -q ":$BIN_DIR:"; then
-  echo "  1. Add $BIN_DIR to PATH:  export PATH=\"\$HOME/.local/bin:\$PATH\""
-  echo "  2. cockpit start ~/projects/my-app"
+# Link or copy executable launcher
+if ln -sf "$INSTALL_DIR/bin/cockpit" "$BIN_DIR/cockpit" 2>/dev/null; then
+  echo "Linked launcher: $INSTALL_DIR/bin/cockpit → $BIN_DIR/cockpit"
 else
-  echo "  cockpit start ~/projects/my-app"
+  cp -f "$INSTALL_DIR/bin/cockpit" "$BIN_DIR/cockpit"
+  chmod +x "$BIN_DIR/cockpit"
+  echo "Copied launcher: $BIN_DIR/cockpit"
 fi
 
-# Print the curl command for this same repo, when derivable.
-RAW_URL="$(echo "$REPO_URL" | sed -E 's#^https://github\.com/([^/]+)/([^/]+?)(\.git)?$#https://raw.githubusercontent.com/\1/\2/main/install.sh#')"
+# On Windows environments, generate CMD and PowerShell launcher wrappers
+if [ "$PLATFORM" = "Windows" ] || [ -n "${WINDIR:-}" ] || [ -n "${SYSTEMROOT:-}" ]; then
+  cat <<'CMDWRAPPER' > "$BIN_DIR/cockpit.cmd"
+@echo off
+bash "%~dp0cockpit" %*
+CMDWRAPPER
+  chmod +x "$BIN_DIR/cockpit.cmd" 2>/dev/null || true
+
+  cat <<'PSWRAPPER' > "$BIN_DIR/cockpit.ps1"
+& bash "$PSScriptRoot/cockpit" $args
+PSWRAPPER
+  chmod +x "$BIN_DIR/cockpit.ps1" 2>/dev/null || true
+
+  echo "Created Windows CMD (cockpit.cmd) and PowerShell (cockpit.ps1) wrappers in $BIN_DIR"
+fi
+
+echo ""
+echo "Done! OpenCode IDE has been installed."
+echo ""
+
+if ! echo ":$PATH:" | grep -q ":$BIN_DIR:"; then
+  echo "Notice: $BIN_DIR is not currently in your PATH."
+  echo "To run 'cockpit' from any directory, add it to your environment:"
+  case "$PLATFORM" in
+    macOS)
+      echo "  Zsh (default):    echo 'export PATH=\"$BIN_DIR:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
+      echo "  Bash:            echo 'export PATH=\"$BIN_DIR:\$PATH\"' >> ~/.bash_profile && source ~/.bash_profile"
+      ;;
+    Linux)
+      echo "  Bash:            echo 'export PATH=\"$BIN_DIR:\$PATH\"' >> ~/.bashrc && source ~/.bashrc"
+      echo "  Zsh:             echo 'export PATH=\"$BIN_DIR:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
+      ;;
+    Windows)
+      echo "  Git Bash:        echo 'export PATH=\"$BIN_DIR:\$PATH\"' >> ~/.bashrc && source ~/.bashrc"
+      echo "  PowerShell:      [Environment]::SetEnvironmentVariable(\"Path\", \$env:Path + \";$BIN_DIR\", \"User\")"
+      ;;
+  esac
+  echo ""
+fi
+
+echo "Start OpenCode IDE:"
+echo "  cockpit start ~/projects/my-app"
+
+# Print raw curl link for easy sharing
+RAW_URL="$(echo "$REPO_URL" | sed -E 's#^https://github\\.com/([^/]+)/([^/]+?)(\\.git)?$#https://raw.githubusercontent.com/\\1/\\2/main/install.sh#')"
 case "$RAW_URL" in
   https://raw.githubusercontent.com/*)
     echo ""
-    echo "Share this installer with:"
-    echo "  curl -fsSL $RAW_URL | bash" ;;
+    echo "Share installer:"
+    echo "  curl -fsSL $RAW_URL | bash"
+    ;;
 esac

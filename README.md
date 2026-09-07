@@ -8,17 +8,19 @@ Visual cockpit for [OpenCode](https://opencode.ai) — see what the AI is changi
 
 ---
 
-## Install — one line (copy this)
+## Install — Cross-Platform (macOS, Linux, Windows)
 
+### macOS / Linux / Windows (Git Bash):
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wansatya/opencode-ide/main/install.sh | bash
 ```
 
-This clones to `~/.opencode-ide`, installs dependencies, builds, and adds `cockpit` to `~/.local/bin/cockpit`. Make sure `~/.local/bin` is on your `PATH`:
-
-```sh
-export PATH="$HOME/.local/bin:$PATH"
+### Windows (PowerShell):
+```powershell
+iwr -useb https://raw.githubusercontent.com/wansatya/opencode-ide/main/install.ps1 | iex
 ```
+
+This clones to `~/.opencode-ide`, installs dependencies, builds, and links `cockpit` to `~/.local/bin`.
 
 Requires: **Node 20+**, **git**, **opencode** CLI.
 
