@@ -33,46 +33,52 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
     setTimeout(() => setCopiedCodeIdx(null), 2000);
   };
 
-  // Custom client-side markdown parser
+  // Custom client-side markdown parser with pre-pass code block extraction
   const renderedElements = useMemo(() => {
-    const lines = content.split("\n");
+    const codeBlocks: { lang: string; code: string }[] = [];
+    
+    // Extract fenced code blocks ```lang ... ``` first to prevent collisions with paragraph/inline parsers
+    const processedContent = content.replace(/```([a-zA-Z0-9_+-]*)\r?\n([\s\S]*?)```/g, (_, lang, code) => {
+      const idx = codeBlocks.length;
+      codeBlocks.push({ lang: lang.trim() || "text", code: code.replace(/\r\n/g, "\n") });
+      return `\n__CODE_BLOCK_${idx}__\n`;
+    });
+
+    const lines = processedContent.split("\n");
     const elements: JSX.Element[] = [];
     let i = 0;
-    let codeBlockCount = 0;
 
     while (i < lines.length) {
       const line = lines[i];
 
-      // Code blocks ```lang
-      if (line.trim().startsWith("```")) {
-        const lang = line.trim().slice(3).trim() || "text";
-        const codeLines: string[] = [];
-        i++;
-        while (i < lines.length && !lines[i].trim().startsWith("```")) {
-          codeLines.push(lines[i]);
-          i++;
+      // Render Code Block Token
+      if (line.trim().startsWith("__CODE_BLOCK_") && line.trim().endsWith("__")) {
+        const match = line.trim().match(/^__CODE_BLOCK_(\d+)__$/);
+        if (match) {
+          const idx = parseInt(match[1], 10);
+          const block = codeBlocks[idx];
+          if (block) {
+            elements.push(
+              <div key={`code-block-${idx}-${i}`} className="my-4 rounded-lg border border-[#36281e] bg-[#120d0a] overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between px-3 py-1.5 bg-[#1e1510] border-b border-[#36281e] text-[11px] text-[#9e8b7d]">
+                  <span className="font-mono text-amber-300 font-medium uppercase tracking-wider">{block.lang}</span>
+                  <button
+                    onClick={() => copyToClipboard(block.code, idx)}
+                    className="flex items-center gap-1 hover:text-[#ece1d8] transition-colors"
+                  >
+                    {copiedCodeIdx === idx ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                    <span>{copiedCodeIdx === idx ? "Copied" : "Copy"}</span>
+                  </button>
+                </div>
+                <pre className="p-3 text-xs font-mono text-[#dcd1c7] overflow-x-auto leading-relaxed whitespace-pre font-normal">
+                  <code>{block.code}</code>
+                </pre>
+              </div>
+            );
+            i++;
+            continue;
+          }
         }
-        const codeText = codeLines.join("\n");
-        const idx = codeBlockCount++;
-        elements.push(
-          <div key={`code-${i}`} className="my-4 rounded-lg border border-[#36281e] bg-[#120d0a] overflow-hidden shadow-lg">
-            <div className="flex items-center justify-between px-3 py-1.5 bg-[#1e1510] border-b border-[#36281e] text-[11px] text-[#9e8b7d]">
-              <span className="font-mono text-amber-300 font-medium uppercase tracking-wider">{lang}</span>
-              <button
-                onClick={() => copyToClipboard(codeText, idx)}
-                className="flex items-center gap-1 hover:text-[#ece1d8] transition-colors"
-              >
-                {copiedCodeIdx === idx ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
-                <span>{copiedCodeIdx === idx ? "Copied" : "Copy"}</span>
-              </button>
-            </div>
-            <pre className="p-3 text-xs font-mono text-[#dcd1c7] overflow-x-auto leading-relaxed">
-              <code>{codeText}</code>
-            </pre>
-          </div>
-        );
-        i++;
-        continue;
       }
 
       // Headers #
@@ -276,7 +282,7 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
   }, [content, copiedCodeIdx, dirPath]);
 
   return (
-    <div className="h-full flex flex-col bg-[#140f0c] text-[#ece1d8] overflow-y-auto p-6 max-w-4xl mx-auto selection:bg-amber-900/60 select-text">
+    <div className="h-full w-full flex flex-col bg-[#140f0c] text-[#ece1d8] overflow-y-auto p-6 selection:bg-amber-900/60 select-text">
       {renderedElements}
     </div>
   );
@@ -285,24 +291,32 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
 // Inline formatting helper for bold, italic, inline code, links, images
 function renderFormattedInlineText(text: string, resolveImageSrc: (src: string) => string): (string | JSX.Element)[] {
   const parts: (string | JSX.Element)[] = [];
-  let current = text;
   let keyIdx = 0;
 
-  // Regex patterns for markdown inline syntax
-  const inlineRegex = /(`[^`]+`|\!\[.*?\]\(.*?\)|\[.*?\]\(.*?\)|\*\*.*?\*\*|\*.*?\*|~~.*?~~)/g;
-  const matches = current.split(inlineRegex);
+  // Regex patterns for markdown inline syntax (handles triple, double, and single backticks)
+  const inlineRegex = /(`{3}[\s\S]*?`{3}|`{2}[\s\S]*?`{2}|`[^`\n]+`|`{1,3}|\!\[.*?\]\(.*?\)|\[.*?\]\(.*?\)|\*\*.*?\*\*|\*.*?\*|~~.*?~~)/g;
+  const matches = text.split(inlineRegex);
 
   for (const part of matches) {
     if (!part) continue;
     keyIdx++;
 
-    // Inline Code `code`
-    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
-      parts.push(
-        <code key={keyIdx} className="px-1.5 py-0.5 rounded bg-[#251b14] border border-[#3a2a1f] font-mono text-[11px] text-amber-300">
-          {part.slice(1, -1)}
-        </code>
-      );
+    // Code tag / backticks
+    if (part.startsWith("`")) {
+      const match = part.match(/^(`+)([\s\S]*?)\1$/);
+      if (match && match[2].length > 0 && part.length > match[1].length * 2) {
+        parts.push(
+          <code key={keyIdx} className="px-1.5 py-0.5 rounded bg-[#251b14] border border-[#3a2a1f] font-mono text-[11px] text-amber-300">
+            {match[2]}
+          </code>
+        );
+      } else {
+        parts.push(
+          <code key={keyIdx} className="px-1.5 py-0.5 rounded bg-[#251b14] border border-[#3a2a1f] font-mono text-[11px] text-amber-300">
+            {part}
+          </code>
+        );
+      }
     }
     // Inline Image ![alt](src)
     else if (part.startsWith("![") && part.includes("](")) {
