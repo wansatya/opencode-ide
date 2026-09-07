@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Folder, CornerLeftUp, House, Loader2 } from "lucide-react";
+import { Folder, CornerLeftUp, House, Loader2, GitBranch, Plus } from "lucide-react";
 import { flatFiles, useRepo } from "../../stores/repository";
 import { useUI } from "../../stores/ui";
 import { useGit } from "../../stores/git";
@@ -121,6 +121,41 @@ export function CommandPalette() {
     <div className="fixed inset-0 bg-black/60 z-50 flex justify-center pt-24" onClick={() => setPalette(false)}>
       <div className="bg-[#231a14] border border-[#36281e] rounded-lg w-[520px] h-fit overflow-hidden text-[#ece1d8] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {cmds.map(([n, fn]) => <button key={n} onClick={() => { fn(); setPalette(false); }} className="block w-full text-left px-3 py-2 text-sm text-[#c2ab99] hover:bg-[#281f18] hover:text-[#ece1d8]">{n}</button>)}
+      </div>
+    </div>
+  );
+}
+
+export function BranchChoiceDialog({ open, branches, lastBranch, onChoice, onCancel }: { open: boolean; branches: string[]; lastBranch: string | null; onChoice: (choice: string) => void; onCancel: () => void }) {
+  const [selected, setSelected] = useState<string>(lastBranch ?? branches[0] ?? "");
+  useEffect(() => { if (open) setSelected(lastBranch ?? branches[0] ?? ""); }, [open, branches, lastBranch]);
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-[#231a14] border border-[#36281e] rounded-lg p-5 w-[520px] max-h-[80vh] flex flex-col text-[#ece1d8] shadow-2xl">
+        <h2 className="font-semibold mb-1 text-amber-200 flex items-center gap-2"><GitBranch size={16} /> OpenCode branches found</h2>
+        <p className="text-xs text-[#9e8b7d] mb-3">This repository has existing <code className="px-1 py-0.5 rounded bg-[#140f0c] border border-[#36281e]">opencode/*</code> branches. Do you want to continue the last session or start a fresh one?</p>
+        <div className="rounded border border-[#36281e] bg-[#140f0c] p-3 mb-3">
+          <div className="text-xs text-[#9e8b7d] mb-2">Most recent branch:</div>
+          <div className="flex items-center gap-2 text-sm font-mono bg-[#231a14] border border-[#36281e] rounded px-2 py-1.5">
+            <GitBranch size={14} className="text-amber-400 shrink-0" />
+            <span className="truncate text-amber-100">{lastBranch ?? branches[0] ?? "—"}</span>
+          </div>
+          {branches.length > 1 && (
+            <div className="mt-3">
+              <label className="text-xs text-[#9e8b7d]">Or pick another opencode branch:</label>
+              <select value={selected} onChange={(e) => setSelected(e.target.value)} className="mt-1 w-full px-2 py-1.5 rounded bg-[#231a14] border border-[#36281e] text-sm text-[#ece1d8] outline-none focus:border-[#d97706]">
+                {branches.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+          )}
+          {branches.length > 1 && <div className="text-[11px] text-[#9e8b7d] mt-1">{branches.length} opencode branches total</div>}
+        </div>
+        <div className="flex justify-end gap-2">
+          <button onClick={onCancel} className="px-3 py-1.5 text-sm rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]">Cancel</button>
+          <button onClick={() => onChoice("new")} className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]"><Plus size={14} />Create new branch</button>
+          <button onClick={() => onChoice(selected)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded bg-amber-700 hover:bg-amber-600 text-white font-medium"><GitBranch size={14} />Continue {branches.length > 1 ? "selected" : "last"} branch</button>
+        </div>
       </div>
     </div>
   );

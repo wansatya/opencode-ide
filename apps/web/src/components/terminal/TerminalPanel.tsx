@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
@@ -6,6 +6,7 @@ import { api, wsUrl } from "../../lib/api";
 import { useTerm } from "../../stores/terminal";
 import { Play, Square } from "lucide-react";
 import StartupVisualization from "./StartupVisualization";
+import { BranchChoiceDialog } from "../common/Dialogs";
 
 const INSTALL_MSG = "opencode not found — install it first (https://opencode.ai), then restart the bridge.";
 const IDLE_MSG = "opencode is not running — press Start to launch it in the open repository.";
@@ -20,6 +21,15 @@ export default function TerminalPanel() {
   const startingRef = useRef(false);
   const disposedRef = useRef(false);
   const { state, set, error, found, bin, setCheck, ready, setReady } = useTerm();
+  const [branchDialog, setBranchDialog] = useState<{ branches: string[]; lastBranch: string | null } | null>(null);
+  const branchResolveRef = useRef<((choice: string | null) => void) | null>(null);
+
+  const promptBranchChoice = (branches: string[], lastBranch: string | null): Promise<string | null> => {
+    return new Promise((resolve) => {
+      branchResolveRef.current = resolve;
+      setBranchDialog({ branches, lastBranch });
+    });
+  };
 
   const safeFit = () => {
     if (disposedRef.current) return false;
@@ -72,14 +82,49 @@ export default function TerminalPanel() {
     try {
       safeFit();
       const d = dims();
-      const r = await api.ocStart(d.cols, d.rows);
+      let branchChoice: string | undefined = undefined;
+      let r: any;
+      try {
+        r = await api.ocStart(d.cols, d.rows, branchChoice);
+      } catch (e: any) {
+        if (e.code === "BRANCH_CHOICE_REQUIRED" && Array.isArray((e as any).branches) && (e as any).branches.length) {
+          const branches: string[] = (e as any).branches;
+          const lastBranch: string | null = (e as any).lastBranch ?? branches[0] ?? null;
+          // Try to surface any attached branches from parsed error payload (fallback if j() didn't attach)
+          let fbBranches = branches;
+          let fbLast = lastBranch;
+          try {
+            const raw = e.message as string;
+            if (!fbBranches.length && raw.includes("opencode/")) fbBranches = [raw];
+          } catch {}
+          const choice = await promptBranchChoice(fbBranches, fbLast);
+          if (choice === null) {
+            if (!disposedRef.current) termRef.current?.writeln("\x1b[90mStart cancelled — no branch selected.\x1b[0m");
+            set("exited");
+            setReady(true);
+            return;
+          }
+          branchChoice = choice;
+          if (!disposedRef.current) termRef.current?.writeln(`\x1b[90mBranch choice: ${choice === "new" ? "creating new branch" : "continuing " + choice}\x1b[0m`);
+          r = await api.ocStart(d.cols, d.rows, branchChoice);
+        } else {
+          throw e;
+        }
+      }
       if (disposedRef.current) return;
       set("connected");
       setCheck(true, r.bin ?? useTerm.getState().bin);
       termRef.current?.focus();
+      if (r.branch) termRef.current?.writeln(`\x1b[90mBranch: ${r.branch} ${r.continued ? "(continued)" : "(new)"}\x1b[0m`);
       setTimeout(() => { if (!disposedRef.current) sendResize(); }, 150);
     } catch (e: any) {
       if (disposedRef.current) return;
+      // User cancelled branch dialog — already handled with "exited" above
+      if (e?.code === "BRANCH_CHOICE_REQUIRED") {
+        set("exited");
+        setReady(true);
+        return;
+      }
       const msg = e.message ?? "Failed to start";
       const notFound = e.code === "OPENCODE_NOT_FOUND" || /not found/i.test(msg);
       if (notFound) setCheck(false);
@@ -330,6 +375,23 @@ export default function TerminalPanel() {
         <div ref={ref} className="h-full w-full" />
         {state === "starting" && <StartupVisualization bin={bin} />}
       </div>
+      <BranchChoiceDialog
+        open={!!branchDialog}
+        branches={branchDialog?.branches ?? []}
+        lastBranch={branchDialog?.lastBranch ?? null}
+        onChoice={(choice) => {
+          const resolve = branchResolveRef.current;
+          branchResolveRef.current = null;
+          setBranchDialog(null);
+          resolve?.(choice);
+        }}
+        onCancel={() => {
+          const resolve = branchResolveRef.current;
+          branchResolveRef.current = null;
+          setBranchDialog(null);
+          resolve?.(null);
+        }}
+      />
     </div>
   );
 }

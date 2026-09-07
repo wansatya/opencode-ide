@@ -121,6 +121,45 @@ export class GitService {
     catch { return null; }
   }
 
+  /** List branches matching `opencode/*`, most-recent first. */
+  async listOpencodeBranches(): Promise<string[]> {
+    if (!this.root || !this.isRepo) return [];
+    try {
+      // Try git-sorted by committerdate first, then enforce lexical descending
+      // as a stable tie-breaker for session branches that share the same commit
+      // (and thus same committerdate). Session names embed YYYYMMDD-HHMMSS so
+      // lexical descending == most-recent first.
+      const { stdout } = await execFileAsync("git", ["branch", "--list", "opencode/*", "--sort=-committerdate", "--format=%(refname:short)"], { cwd: this.root });
+      const branches = stdout.split("\n").map((s) => s.trim()).filter(Boolean);
+      // If multiple branches share the same committerdate, git order is arbitrary.
+      // Re-sort session branches lexically descending to surface the newest session.
+      branches.sort((a, b) => b.localeCompare(a));
+      return branches;
+    } catch {
+      // Fallback via simple-git if format flag unsupported on old git
+      try {
+        const out = await this.git!.branchLocal();
+        const branches = out.all.filter((b) => b.startsWith("opencode/"));
+        branches.sort((a, b) => b.localeCompare(a));
+        return branches;
+      } catch { return []; }
+    }
+  }
+
+  /** Checkout an existing local branch. Returns previous branch name. */
+  async checkoutBranch(name: string): Promise<{ previous: string | null; branch: string; error?: string }> {
+    if (!this.root || !this.isRepo) return { previous: null, branch: name, error: "Not a git repository" };
+    let previous: string | null = null;
+    try { previous = await this.getBranch(); } catch {}
+    try {
+      await execFileAsync("git", ["checkout", name], { cwd: this.root });
+      return { previous, branch: name };
+    } catch (e: any) {
+      const msg: string = e?.stderr ?? e?.stdout ?? e?.message ?? String(e);
+      return { previous, branch: name, error: msg.trim().slice(0, 500) };
+    }
+  }
+
   /**
    * Create an isolated session branch for the current opencode session.
    * Default behaviour is to create `opencode/session-YYYYMMDD-HHMMSS-xxxx`
