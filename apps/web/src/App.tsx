@@ -34,7 +34,13 @@ export default function App() {
         try {
           const m = JSON.parse(e.data);
           if (m.type?.startsWith("file.") || m.type?.startsWith("directory.")) window.dispatchEvent(new CustomEvent("cockpit:file-event", { detail: { path: m.path, type: m.type } }));
-          else if (m.type === "git.status_changed") useGit.getState().refresh();
+          else if (m.type === "git.status_changed" || m.type === "git.branch_changed" || m.type === "git.branch_created") {
+            useGit.getState().refresh();
+            if (m.type === "git.branch_changed") {
+              useRepo.getState().load();
+              window.dispatchEvent(new CustomEvent("cockpit:git-branch-changed", { detail: m }));
+            }
+          }
           else if (m.type === "opencode.state") {
             retry = 0;
             const s = m.state === "running" ? "connected" : m.state;

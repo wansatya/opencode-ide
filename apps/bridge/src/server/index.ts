@@ -181,6 +181,30 @@ app.get("/api/git/head", async (req, res) => {
   try { res.json({ content: await gitService.getHeadFile(String(req.query.path ?? "")) }); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
+app.get("/api/git/branches", async (_req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  try {
+    const r = await gitService.listBranches();
+    res.json({ ...r, isGitRepository: gitService.isRepo });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/git/checkout", async (req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  const branch = String(req.body?.branch ?? "").trim();
+  if (!branch) return res.status(400).json({ error: "branch required" });
+  if (/[\x00\n\r]/.test(branch)) return res.status(400).json({ error: "invalid branch name" });
+  if (branch.startsWith("-")) return res.status(400).json({ error: "invalid branch name" });
+  if (branch.includes("\0")) return res.status(400).json({ error: "invalid branch name" });
+  try {
+    const result = await gitService.checkoutBranch(branch);
+    if (result.error) return res.status(409).json({ error: result.error, branch, previous: result.previous });
+    broadcast({ type: "git.status_changed" });
+    // branch checkout changes files on disk — refresh tree for watchers that may miss the burst
+    broadcast({ type: "git.branch_changed", branch, previous: result.previous });
+    // also trigger tree reload via generic file events? emit via watcher already, but ensure frontend reload
+    res.json({ ok: true, branch: result.branch, previous: result.previous });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
 app.get("/api/git/opencode-branches", async (_req, res) => {
   const root = requireRoot(res); if (!root) return;
   try {
