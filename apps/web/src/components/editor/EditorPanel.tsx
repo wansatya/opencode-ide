@@ -11,9 +11,9 @@ function langOf(p: string) {
   const e = p.split(".").pop()?.toLowerCase();
   const m: Record<string, string> = {
     ts: "typescript", mts: "typescript", cts: "typescript",
-    tsx: "typescriptreact", mtsx: "typescriptreact",
+    tsx: "typescript", mtsx: "typescript",
     js: "javascript", mjs: "javascript", cjs: "javascript",
-    jsx: "javascriptreact", mjsx: "javascriptreact",
+    jsx: "javascript", mjsx: "javascript",
     json: "json", md: "markdown", mdown: "markdown", markdown: "markdown",
     py: "python", rs: "rust", go: "go", css: "css", scss: "scss", less: "less",
     html: "html", yml: "yaml", yaml: "yaml", toml: "toml", sh: "shell", bash: "shell",
@@ -25,32 +25,40 @@ const handleBeforeMount = (monaco: any) => {
   monaco.editor.defineTheme("dark-brown", {
     base: "vs-dark",
     inherit: true,
-    rules: [
-      { token: "", background: "140f0c", foreground: "ece1d8" },
-      { token: "comment", foreground: "7c6a5c", fontStyle: "italic" },
-      { token: "keyword", foreground: "e58e26", fontStyle: "bold" },
-      { token: "string", foreground: "c29b62" },
-      { token: "number", foreground: "e09f67" },
-      { token: "type", foreground: "ddb274" },
-      { token: "function", foreground: "f3b367" },
-      { token: "variable", foreground: "ece1d8" },
-      { token: "delimiter", foreground: "9e8b7d" },
-    ],
+    rules: [],
     colors: {
       "editor.background": "#140f0c",
-      "editor.foreground": "#ece1d8",
+      "editorGutter.background": "#140f0c",
       "editor.lineHighlightBackground": "#231a14",
-      "editorCursor.foreground": "#f59e0b",
-      "editorWhitespace.foreground": "#36281e",
       "editor.selectionBackground": "#4a3627",
       "editor.inactiveSelectionBackground": "#33251a",
-      "editorLineNumber.foreground": "#635245",
-      "editorLineNumber.activeForeground": "#d97706",
-      "editorGutter.background": "#140f0c",
       "diffEditor.insertedTextBackground": "#2a3d2480",
       "diffEditor.removedTextBackground": "#4d232380",
     },
   });
+  // File viewer - not a full TS project, so disable semantic/suggestion diagnostics
+  // that produce false red curly underlines like "Cannot find module 'react'".
+  try {
+    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: false,
+      noSuggestionDiagnostics: true,
+    });
+    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: false,
+      noSuggestionDiagnostics: true,
+    });
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      allowJs: true,
+      allowNonTsExtensions: true,
+      jsx: monaco.languages.typescript.JsxEmit.React,
+      target: monaco.languages.typescript.ScriptTarget.Latest,
+      moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+      noEmit: true,
+      esModuleInterop: true,
+    });
+  } catch {}
 };
 
 function isWordChar(ch: string) { return /[A-Za-z0-9_]/.test(ch); }
