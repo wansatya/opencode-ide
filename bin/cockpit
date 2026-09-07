@@ -94,8 +94,95 @@ kill_all() {
 }
 
 # ---- browser ----------------------------------------------------------------
+# If a cockpit tab is already open, select + reload it instead of piling up
+# a new duplicate tab on every `cockpit start`.
+try_reuse_tab_macos() {
+  local needle="$1" # e.g. localhost:5173
+  command -v osascript >/dev/null 2>&1 || return 1
+  local reused=""
+  reused="$(osascript - "$needle" <<'APPLESCRIPT' 2>/dev/null
+on run argv
+  set needle to item 1 of argv
+  -- Chromium-based browsers share one scripting dictionary, and because
+  -- appName is a variable the terminology resolves at runtime, so this
+  -- works for Chrome/Chromium/Brave/Edge/Arc/Vivaldi/Opera alike.
+  repeat with appName in {"Google Chrome", "Chromium", "Brave Browser", "Microsoft Edge", "Arc", "Vivaldi", "Opera"}
+    try
+      tell application "System Events" to set isRunning to (exists process appName)
+      if isRunning then
+        tell application appName
+          repeat with w in windows
+            repeat with t in tabs of w
+              try
+                set tabURL to (URL of t as text)
+              on error
+                set tabURL to ""
+              end try
+              if tabURL contains needle then
+                set active tab index of w to (index of t)
+                set index of w to 1
+                try
+                  reload t
+                end try
+                activate
+                return "reused"
+              end if
+            end repeat
+          end repeat
+        end tell
+      end if
+    end try
+  end repeat
+  -- Safari has its own dictionary (no `reload` verb; navigate instead).
+  try
+    tell application "System Events" to set safariRunning to (exists process "Safari")
+    if safariRunning then
+      tell application "Safari"
+        repeat with w in windows
+          repeat with t in tabs of w
+            try
+              set tabURL to (URL of t as text)
+            on error
+              set tabURL to ""
+            end try
+            if tabURL contains needle then
+              set current tab of w to t
+              set index of w to 1
+              try
+                set URL of t to (URL of t as text)
+              end try
+              activate
+              return "reused"
+            end if
+          end repeat
+        end repeat
+      end tell
+    end if
+  end try
+  return "miss"
+end run
+APPLESCRIPT
+)"
+  [ "$reused" = "reused" ]
+}
+
+try_reuse_tab() {
+  local url="$1" needle
+  needle="${url#*://}" # strip scheme -> localhost:PORT
+  case "$(uname -s)" in
+    Darwin) try_reuse_tab_macos "$needle" ;;
+    # Linux/WSL: browsers expose no CLI to enumerate tabs, so there is no
+    # safe way to target the cockpit tab from shell (blindly typing the URL
+    # into the address bar could hijack an unrelated tab). Duplicates are
+    # instead resolved inside the web UI (see apps/web/src/lib/singleTab.ts):
+    # a freshly opened tab yields to the already-live one.
+    *) return 1 ;;
+  esac
+}
+
 open_browser() {
   local url="$1"
+  if try_reuse_tab "$url"; then return 0; fi
   if [ -n "${BROWSER:-}" ]; then
     "$BROWSER" "$url" >/dev/null 2>&1 & return 0
   fi

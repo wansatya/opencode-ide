@@ -301,7 +301,9 @@ export default function TerminalPanel() {
       {found === false && state !== "starting" && (
         <div className="px-2 py-1.5 text-xs bg-[#382b1c] border-b border-amber-500/40 text-amber-200 shrink-0">{INSTALL_MSG}</div>
       )}
-      <div ref={ref} className="flex-1 min-h-0 bg-[#140f0c]" />
+      <div className="flex-1 min-h-0 bg-[#140f0c] p-2 overflow-hidden">
+        <div ref={ref} className="h-full w-full" />
+      </div>
     </div>
   );
 }
