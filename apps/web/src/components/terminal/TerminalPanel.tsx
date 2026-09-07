@@ -105,7 +105,7 @@ export default function TerminalPanel() {
     // StrictMode remounts on the same div: clear stale xterm DOM first.
     el.innerHTML = "";
     const term = new Terminal({
-      fontSize: 13,
+      fontSize: 12,
       theme: {
         background: "#140f0c",
         foreground: "#ece1d8",
@@ -162,7 +162,14 @@ export default function TerminalPanel() {
       ws.onmessage = (e) => {
         if (disposedRef.current) return;
         const data = e.data as unknown;
-        if (typeof data === "string") { write(data); return; }
+        // The bridge sends a "[process exited N]" trailer on every PTY exit.
+        // The exited-state effect below already renders its own hint, so drop
+        // the trailer — otherwise a Stop would repopulate the just-cleared
+        // panel with stale exit text.
+        if (typeof data === "string") {
+          if (data.includes("[process exited")) return;
+          write(data); return;
+        }
         if (data instanceof ArrayBuffer) { write(new Uint8Array(data)); return; }
         if (data instanceof Blob) {
           void data.text().then((t) => { write(t); });
@@ -271,7 +278,12 @@ export default function TerminalPanel() {
 
   useEffect(() => {
     if (disposedRef.current) return;
-    if (state === "exited") termRef.current?.writeln("\r\n\x1b[90mopencode exited. Press Start to relaunch.\x1b[0m");
+    if (state === "exited") {
+      // Stop must leave a clean panel: drop stale scrollback so the next
+      // Start begins blank instead of showing the previous session.
+      try { termRef.current?.clear(); } catch { }
+      termRef.current?.writeln("\x1b[90mopencode exited. Press Start to relaunch.\x1b[0m");
+    }
     if (isRunning(state)) {
       safeFit();
       setTimeout(() => { if (!disposedRef.current) sendResize(); }, 50);
@@ -280,7 +292,13 @@ export default function TerminalPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const stop = async () => { try { await api.ocStop(); } catch { } set("exited"); };
+  const stop = async () => {
+    try { await api.ocStop(); } catch { }
+    if (!disposedRef.current) {
+      try { termRef.current?.clear(); } catch { }
+    }
+    set("exited");
+  };
 
   const running = isRunning(state);
   return (
@@ -301,7 +319,7 @@ export default function TerminalPanel() {
       {found === false && state !== "starting" && (
         <div className="px-2 py-1.5 text-xs bg-[#382b1c] border-b border-amber-500/40 text-amber-200 shrink-0">{INSTALL_MSG}</div>
       )}
-      <div className="flex-1 min-h-0 bg-[#140f0c] p-2 overflow-hidden">
+      <div className="flex-1 min-h-0 bg-[#140f0c] p-0 overflow-hidden">
         <div ref={ref} className="h-full w-full" />
       </div>
     </div>

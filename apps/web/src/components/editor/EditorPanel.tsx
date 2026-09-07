@@ -9,7 +9,15 @@ import { useUI } from "../../stores/ui";
 
 function langOf(p: string) {
   const e = p.split(".").pop()?.toLowerCase();
-  const m: Record<string, string> = { ts: "typescript", tsx: "typescript", js: "javascript", jsx: "javascript", json: "json", md: "markdown", py: "python", rs: "rust", go: "go", css: "css", html: "html", yml: "yaml", yaml: "yaml", toml: "toml", sh: "shell" };
+  const m: Record<string, string> = {
+    ts: "typescript", mts: "typescript", cts: "typescript",
+    tsx: "typescriptreact", mtsx: "typescriptreact",
+    js: "javascript", mjs: "javascript", cjs: "javascript",
+    jsx: "javascriptreact", mjsx: "javascriptreact",
+    json: "json", md: "markdown", mdown: "markdown", markdown: "markdown",
+    py: "python", rs: "rust", go: "go", css: "css", scss: "scss", less: "less",
+    html: "html", yml: "yaml", yaml: "yaml", toml: "toml", sh: "shell", bash: "shell",
+  };
   return m[e ?? ""] ?? "plaintext";
 }
 
@@ -650,7 +658,7 @@ export default function EditorPanel() {
       {meta?.tooLarge && <div className="p-6 text-sm text-[#9e8b7d]">Large file — This file is too large to safely display in the editor.</div>}
       {!meta?.binary && !meta?.tooLarge && (
         mode === "diff" ? (
-          <DiffEditor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} original={base ?? ""} modified={val} language={langOf(selectedFile)}
+          <DiffEditor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} original={base ?? ""} modified={val} language={langOf(selectedFile)} originalModelPath={`inmemory://original/${selectedFile}`} modifiedModelPath={`inmemory://modified/${selectedFile}`}
             onMount={(e) => {
               diffModifiedRef.current = e.getModifiedEditor();
               diffOriginalRef.current = e.getOriginalEditor();
@@ -664,7 +672,7 @@ export default function EditorPanel() {
             }}
             options={{ fontSize: 13, minimap: { enabled: false }, readOnly: false, originalEditable: false, renderSideBySide: true, tabSize: editorTabSize, insertSpaces: editorInsertSpaces, detectIndentation: false } as any} />
         ) : (
-          <Editor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} language={langOf(selectedFile)} value={val}
+          <Editor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} language={langOf(selectedFile)} path={selectedFile} value={val}
             onMount={(edInst, monaco) => {
               monacoRef.current = monaco;
               editorRef.current = edInst;

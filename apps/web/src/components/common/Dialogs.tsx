@@ -115,7 +115,7 @@ export function CommandPalette() {
     ["Refresh Git Status", () => useGit.getState().refresh()],
     ["Focus Terminal", () => document.querySelector<HTMLElement>(".xterm-screen")?.focus()],
     ["Restart OpenCode", async () => { const s = useTerm.getState().state; if (s === "connected") await api.ocStop(); try { await api.ocStart(120, 30); useTerm.getState().set("connected"); } catch (e: any) { useTerm.getState().set("error", e.message); } }],
-    ["Stop OpenCode", () => api.ocStop()],
+    ["Stop OpenCode", () => { void api.ocStop().catch(() => {}); useTerm.getState().set("exited"); }],
   ];
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex justify-center pt-24" onClick={() => setPalette(false)}>

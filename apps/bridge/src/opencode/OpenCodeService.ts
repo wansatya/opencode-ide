@@ -195,7 +195,7 @@ export class OpenCodeService {
 
   write(data: string) { this.pty?.write(data); }
   resize(cols: number, rows: number) { this.cols = cols; this.rows = rows; try { this.pty?.resize(cols, rows); } catch {} }
-  kill() { try { this.pty?.kill(); } catch {} this.pty = null; if (this.state === "running" || this.state === "starting") { this.state = "exited"; this.emitExit(0); } }
+  kill() { try { this.pty?.kill(); } catch {} this.pty = null; this.buffer = ""; this.earlyOutput = ""; if (this.state === "running" || this.state === "starting") { this.state = "exited"; this.emitExit(0); } }
   restart() { if (this.cwd) return this.start(this.cwd, this.cols, this.rows); throw new Error("No cwd"); }
 }
 export const openCodeService = new OpenCodeService();

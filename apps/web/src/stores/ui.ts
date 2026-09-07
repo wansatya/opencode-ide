@@ -11,7 +11,7 @@ type S = {
 function saved(k: string, d: number) { try { const v = Number(localStorage.getItem(k)); return Number.isFinite(v) && v > 0 ? v : d; } catch { return d; } }
 function savedBool(k: string, d: boolean) { try { const v = localStorage.getItem(k); if (v === null) return d; return v === "true"; } catch { return d; } }
 export const useUI = create<S>((set, get) => ({
-  leftW: saved("leftW", 240), rightW: saved("rightW", 380),
+  leftW: saved("leftW", 240), rightW: saved("rightW", 560),
   showLeft: true, showRight: true, quickOpen: false, palette: false,
   editorTabSize: saved("editorTabSize", 2),
   editorInsertSpaces: savedBool("editorInsertSpaces", true),
