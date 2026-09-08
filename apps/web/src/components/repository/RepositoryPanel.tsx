@@ -122,14 +122,14 @@ export default function RepositoryPanel() {
   }, [confirm, deleting]);
 
   return (
-    <div className="h-full flex flex-col bg-[#1a130f] overflow-hidden">
+    <div className="h-full flex flex-col bg-[#1c1c1c] overflow-hidden">
       <div className="flex items-center gap-1 px-2 pt-2 pb-1 shrink-0">
-        <div className="flex-1 text-[11px] uppercase tracking-wide text-[#9e8b7d] font-medium">Repository</div>
+        <div className="flex-1 text-[11px] uppercase tracking-wide text-[#B7B1B1] font-medium">Repository</div>
         <button
           title="New File"
           disabled={!root}
           onClick={() => openPrompt("file", "")}
-          className="p-1 rounded hover:bg-[#2e2118] text-[#9e8b7d] hover:text-[#ece1d8] disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1 rounded hover:bg-[#2c2c2c] text-[#B7B1B1] hover:text-[#F1ECEC] disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <FilePlus size={14} />
         </button>
@@ -137,40 +137,40 @@ export default function RepositoryPanel() {
           title="New Folder"
           disabled={!root}
           onClick={() => openPrompt("directory", "")}
-          className="p-1 rounded hover:bg-[#2e2118] text-[#9e8b7d] hover:text-[#ece1d8] disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1 rounded hover:bg-[#2c2c2c] text-[#B7B1B1] hover:text-[#F1ECEC] disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <FolderPlus size={14} />
         </button>
       </div>
-      {loading && <div className="px-3 text-xs text-[#9e8b7d]">Loading…</div>}
+      {loading && <div className="px-3 text-xs text-[#B7B1B1]">Loading…</div>}
       {error && <div className="px-3 text-xs text-red-400">{error}</div>}
-      {truncated && <div className="px-3 py-1 text-[11px] text-amber-300/90">Large repo — tree truncated (20k files / 10 levels). Use Quick Open (Ctrl+P) for deeper files.</div>}
+      {truncated && <div className="px-3 py-1 text-[11px] text-[#B7B1B1]">Large repo — tree truncated (20k files / 10 levels). Use Quick Open (Ctrl+P) for deeper files.</div>}
       <div className="flex-1 overflow-auto" onContextMenu={(e) => { e.preventDefault(); handleContextMenu(e.clientX, e.clientY, "", null, null); }}>
         <FileTree onContextMenu={handleContextMenu} />
       </div>
 
       {menu && (
         <div
-          className="fixed z-40 min-w-[160px] bg-[#231a14] border border-[#36281e] rounded-md shadow-xl py-1 text-sm text-[#ece1d8]"
+          className="fixed z-40 min-w-[160px] bg-[#1c1c1c] border border-[#333333] rounded-md shadow-xl py-1 text-sm text-[#F1ECEC]"
           style={{ left: Math.min(menu.x, window.innerWidth - 170), top: Math.min(menu.y, window.innerHeight - 120) }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-3 py-1 text-[11px] text-[#9e8b7d] truncate max-w-[180px]">{menu.target ? menu.target : (menu.dir ? menu.dir : "/")}</div>
+          <div className="px-3 py-1 text-[11px] text-[#B7B1B1] truncate max-w-[180px]">{menu.target ? menu.target : (menu.dir ? menu.dir : "/")}</div>
           <button
             onClick={() => openPrompt("file", menu.dir)}
-            className="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-[#2e2118] text-[#c2ab99] hover:text-[#ece1d8]"
+            className="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-[#2c2c2c] text-[#B7B1B1] hover:text-[#F1ECEC]"
           >
-            <File size={14} className="text-[#9e8b7d]" /> New File
+            <File size={14} className="text-[#B7B1B1]" /> New File
           </button>
           <button
             onClick={() => openPrompt("directory", menu.dir)}
-            className="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-[#2e2118] text-[#c2ab99] hover:text-[#ece1d8]"
+            className="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-[#2c2c2c] text-[#B7B1B1] hover:text-[#F1ECEC]"
           >
-            <Folder size={14} className="text-[#9e8b7d]" /> New Folder
+            <Folder size={14} className="text-[#B7B1B1]" /> New Folder
           </button>
           {menu.target && menu.targetType && (
             <>
-              <div className="mx-2 my-1 border-t border-[#36281e]" />
+              <div className="mx-2 my-1 border-t border-[#333333]" />
               <button
                 onClick={confirmDelete}
                 className="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-red-900/30 text-red-400 hover:text-red-300"
@@ -184,15 +184,15 @@ export default function RepositoryPanel() {
 
       {confirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => !deleting && setConfirm(null)}>
-          <div className="bg-[#231a14] border border-[#36281e] rounded-lg p-4 w-[380px] text-[#ece1d8] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-medium text-amber-200 mb-1">Delete {confirm.type === "directory" ? "Folder" : "File"}</h3>
-            <p className="text-sm text-[#c2ab99] mb-1 break-all">
-              Are you sure you want to delete <span className="text-[#ece1d8] font-medium">{confirm.path}</span>?
+          <div className="bg-[#222222] border border-[#333333] rounded-lg p-4 w-[380px] text-[#F1ECEC] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-medium text-[#F1ECEC] mb-1">Delete {confirm.type === "directory" ? "Folder" : "File"}</h3>
+            <p className="text-sm text-[#B7B1B1] mb-1 break-all">
+              Are you sure you want to delete <span className="text-[#F1ECEC] font-medium">{confirm.path}</span>?
             </p>
             {confirm.type === "directory" && <p className="text-xs text-red-400 mb-2">This will recursively delete all contents.</p>}
             {deleteError && <div className="text-xs text-red-400 mt-2">{deleteError}</div>}
             <div className="flex justify-end gap-2 mt-3">
-              <button onClick={() => setConfirm(null)} disabled={deleting} className="px-3 py-1.5 text-sm rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] disabled:opacity-40">Cancel</button>
+              <button onClick={() => setConfirm(null)} disabled={deleting} className="px-3 py-1.5 text-sm rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] disabled:opacity-40">Cancel</button>
               <button
                 onClick={doDelete}
                 disabled={deleting}
@@ -208,10 +208,10 @@ export default function RepositoryPanel() {
 
       {prompt && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => !creating && setPrompt(null)}>
-          <div className="bg-[#231a14] border border-[#36281e] rounded-lg p-4 w-[380px] text-[#ece1d8] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-medium text-amber-200 mb-1">{prompt.type === "file" ? "New File" : "New Folder"}</h3>
-            <p className="text-xs text-[#9e8b7d] mb-2">
-              {prompt.parent ? <>in <span className="text-[#c2ab99]">{prompt.parent}</span></> : "at repository root"} — you can include subfolders (e.g. a/b/c.txt)
+          <div className="bg-[#222222] border border-[#333333] rounded-lg p-4 w-[380px] text-[#F1ECEC] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-medium text-[#F1ECEC] mb-1">{prompt.type === "file" ? "New File" : "New Folder"}</h3>
+            <p className="text-xs text-[#B7B1B1] mb-2">
+              {prompt.parent ? <>in <span className="text-[#F1ECEC]">{prompt.parent}</span></> : "at repository root"} — you can include subfolders (e.g. a/b/c.txt)
             </p>
             <input
               autoFocus
@@ -220,12 +220,12 @@ export default function RepositoryPanel() {
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") setPrompt(null); }}
               placeholder={prompt.type === "file" ? "filename.ts" : "folder name"}
-              className="w-full px-2 py-1.5 rounded bg-[#140f0c] border border-[#36281e] text-sm text-[#ece1d8] outline-none focus:border-[#d97706] disabled:opacity-60"
+              className="w-full px-2 py-1.5 rounded bg-[#141414] border border-[#333333] text-sm text-[#F1ECEC] outline-none focus:border-[#B7B1B1] disabled:opacity-60"
             />
             {promptError && <div className="text-xs text-red-400 mt-2">{promptError}</div>}
             <div className="flex justify-end gap-2 mt-3">
-              <button onClick={() => setPrompt(null)} disabled={creating} className="px-3 py-1.5 text-sm rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] disabled:opacity-40">Cancel</button>
-              <button onClick={submit} disabled={creating || !name.trim()} className="px-3 py-1.5 text-sm rounded bg-amber-700 hover:bg-amber-600 text-white font-medium disabled:opacity-50">
+              <button onClick={() => setPrompt(null)} disabled={creating} className="px-3 py-1.5 text-sm rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] disabled:opacity-40">Cancel</button>
+              <button onClick={submit} disabled={creating || !name.trim()} className="px-3 py-1.5 text-sm rounded bg-[#4B4646] hover:bg-[#5e5959] text-white font-medium disabled:opacity-50">
                 {creating ? "Creating…" : "Create"}
               </button>
             </div>

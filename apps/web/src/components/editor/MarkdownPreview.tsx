@@ -59,18 +59,18 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
           const block = codeBlocks[idx];
           if (block) {
             elements.push(
-              <div key={`code-block-${idx}-${i}`} className="my-4 rounded-lg border border-[#36281e] bg-[#120d0a] overflow-hidden shadow-lg">
-                <div className="flex items-center justify-between px-3 py-1.5 bg-[#1e1510] border-b border-[#36281e] text-[11px] text-[#9e8b7d]">
-                  <span className="font-mono text-amber-300 font-medium uppercase tracking-wider">{block.lang}</span>
+              <div key={`code-block-${idx}-${i}`} className="my-4 rounded-lg border border-[#333333] bg-[#141414] overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between px-3 py-1.5 bg-[#1c1c1c] border-b border-[#333333] text-[11px] text-[#B7B1B1]">
+                  <span className="font-mono text-[#F1ECEC] font-medium uppercase tracking-wider">{block.lang}</span>
                   <button
                     onClick={() => copyToClipboard(block.code, idx)}
-                    className="flex items-center gap-1 hover:text-[#ece1d8] transition-colors"
+                    className="flex items-center gap-1 hover:text-[#F1ECEC] transition-colors"
                   >
                     {copiedCodeIdx === idx ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
                     <span>{copiedCodeIdx === idx ? "Copied" : "Copy"}</span>
                   </button>
                 </div>
-                <pre className="p-3 text-xs font-mono text-[#dcd1c7] overflow-x-auto leading-relaxed whitespace-pre font-normal">
+                <pre className="p-3 text-xs font-mono text-[#F1ECEC] overflow-x-auto leading-relaxed whitespace-pre font-normal">
                   <code>{block.code}</code>
                 </pre>
               </div>
@@ -88,11 +88,11 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
           const level = match[1].length;
           const text = match[2];
           const parsedText = renderFormattedInlineText(text, resolveImageSrc);
-          if (level === 1) elements.push(<h1 key={i} className="text-2xl font-bold text-amber-200 border-b border-[#36281e] pb-2 mt-6 mb-3">{parsedText}</h1>);
-          else if (level === 2) elements.push(<h2 key={i} className="text-xl font-semibold text-amber-300 border-b border-[#36281e]/60 pb-1 mt-5 mb-2">{parsedText}</h2>);
-          else if (level === 3) elements.push(<h3 key={i} className="text-lg font-semibold text-amber-400 mt-4 mb-2">{parsedText}</h3>);
-          else if (level === 4) elements.push(<h4 key={i} className="text-base font-semibold text-[#ece1d8] mt-3 mb-1">{parsedText}</h4>);
-          else elements.push(<h5 key={i} className="text-sm font-semibold text-[#c2ab99] mt-3 mb-1">{parsedText}</h5>);
+          if (level === 1) elements.push(<h1 key={i} className="text-2xl font-bold text-[#F1ECEC] border-b border-[#333333] pb-2 mt-6 mb-3">{parsedText}</h1>);
+          else if (level === 2) elements.push(<h2 key={i} className="text-xl font-semibold text-[#F1ECEC] border-b border-[#333333]/60 pb-1 mt-5 mb-2">{parsedText}</h2>);
+          else if (level === 3) elements.push(<h3 key={i} className="text-lg font-semibold text-[#F1ECEC] mt-4 mb-2">{parsedText}</h3>);
+          else if (level === 4) elements.push(<h4 key={i} className="text-base font-semibold text-[#F1ECEC] mt-3 mb-1">{parsedText}</h4>);
+          else elements.push(<h5 key={i} className="text-sm font-semibold text-[#B7B1B1] mt-3 mb-1">{parsedText}</h5>);
           i++;
           continue;
         }
@@ -121,12 +121,12 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
           const style = alertStyles[alertType] ?? alertStyles.NOTE;
 
           elements.push(
-            <div key={i} className={`my-4 p-3.5 rounded-lg border-l-4 ${style.border} ${style.bg} border border-[#36281e]`}>
+            <div key={i} className={`my-4 p-3.5 rounded-lg border-l-4 ${style.border} ${style.bg} border border-[#333333]`}>
               <div className={`flex items-center gap-1.5 font-semibold text-xs mb-1 ${style.text}`}>
                 {style.icon}
                 <span>{alertType}</span>
               </div>
-              <div className="text-xs text-[#ece1d8] leading-relaxed">
+              <div className="text-xs text-[#F1ECEC] leading-relaxed">
                 {renderFormattedInlineText(alertText, resolveImageSrc)}
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
           i++;
         }
         elements.push(
-          <blockquote key={i} className="my-3 border-l-4 border-amber-600 pl-3.5 py-1 text-[#c4b3a5] italic bg-[#1c140e]/60 rounded-r">
+          <blockquote key={i} className="my-3 border-l-4 border-[#B7B1B1] pl-3.5 py-1 text-[#B7B1B1] italic bg-[#1c1c1c]/60 rounded-r">
             {renderFormattedInlineText(quoteLines.join(" "), resolveImageSrc)}
           </blockquote>
         );
@@ -152,7 +152,7 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
 
       // Horizontal Rule ---
       if (/^(\*{3,}|-{3,}|_{3,})$/.test(line.trim())) {
-        elements.push(<hr key={i} className="my-5 border-[#36281e]" />);
+        elements.push(<hr key={i} className="my-5 border-[#333333]" />);
         i++;
         continue;
       }
@@ -175,12 +175,12 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
           const bodyRows = (isSeparator ? tableLines.slice(2) : tableLines.slice(1)).map(parseRow);
 
           elements.push(
-            <div key={i} className="my-4 overflow-x-auto rounded-lg border border-[#36281e]">
+            <div key={i} className="my-4 overflow-x-auto rounded-lg border border-[#333333]">
               <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-[#231a14] border-b border-[#36281e] text-amber-200">
+                <thead className="bg-[#1c1c1c] border-b border-[#333333] text-[#F1ECEC]">
                   <tr>
                     {headerCells.map((h, hIdx) => (
-                      <th key={hIdx} className="px-3 py-2 font-semibold border-r border-[#36281e] last:border-r-0">
+                      <th key={hIdx} className="px-3 py-2 font-semibold border-r border-[#333333] last:border-r-0">
                         {renderFormattedInlineText(h, resolveImageSrc)}
                       </th>
                     ))}
@@ -188,9 +188,9 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
                 </thead>
                 <tbody>
                   {bodyRows.map((row, rIdx) => (
-                    <tr key={rIdx} className={rIdx % 2 === 0 ? "bg-[#140f0c]" : "bg-[#1a130f]"}>
+                    <tr key={rIdx} className={rIdx % 2 === 0 ? "bg-[#141414]" : "bg-[#1c1c1c]"}>
                       {row.map((cell, cIdx) => (
-                        <td key={cIdx} className="px-3 py-2 border-t border-[#36281e] border-r border-[#36281e] last:border-r-0 text-[#c2ab99]">
+                        <td key={cIdx} className="px-3 py-2 border-t border-[#333333] border-r border-[#333333] last:border-r-0 text-[#B7B1B1]">
                           {renderFormattedInlineText(cell, resolveImageSrc)}
                         </td>
                       ))}
@@ -229,13 +229,13 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
 
         const Tag = isOrdered ? "ol" : "ul";
         elements.push(
-          <Tag key={i} className={`my-3 text-xs space-y-1 ${isOrdered ? "list-decimal pl-5" : "list-disc pl-5"} text-[#ece1d8]`}>
+          <Tag key={i} className={`my-3 text-xs space-y-1 ${isOrdered ? "list-decimal pl-5" : "list-disc pl-5"} text-[#F1ECEC]`}>
             {listItems.map((item, idx) => (
               <li key={idx} className="leading-relaxed">
                 {item.checked !== undefined ? (
                   <span className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={item.checked} readOnly className="rounded accent-amber-600 pointer-events-none" />
-                    <span className={item.checked ? "line-through text-[#8a7667]" : ""}>
+                    <input type="checkbox" checked={item.checked} readOnly className="rounded accent-[#4B4646] pointer-events-none" />
+                    <span className={item.checked ? "line-through text-[#B7B1B1]" : ""}>
                       {renderFormattedInlineText(item.text, resolveImageSrc)}
                     </span>
                   </span>
@@ -257,8 +257,8 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
           const src = resolveImageSrc(match[2]);
           elements.push(
             <div key={i} className="my-4 text-center">
-              <img src={src} alt={alt} className="max-w-full h-auto rounded-lg border border-[#36281e] mx-auto shadow-md" />
-              {alt && <span className="text-[11px] text-[#8a7667] mt-1 block">{alt}</span>}
+              <img src={src} alt={alt} className="max-w-full h-auto rounded-lg border border-[#333333] mx-auto shadow-md" />
+              {alt && <span className="text-[11px] text-[#B7B1B1] mt-1 block">{alt}</span>}
             </div>
           );
           i++;
@@ -269,7 +269,7 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
       // Paragraph
       if (line.trim().length > 0) {
         elements.push(
-          <p key={i} className="my-2.5 text-xs leading-relaxed text-[#ece1d8]">
+          <p key={i} className="my-2.5 text-xs leading-relaxed text-[#F1ECEC]">
             {renderFormattedInlineText(line, resolveImageSrc)}
           </p>
         );
@@ -282,7 +282,7 @@ export default function MarkdownPreview({ content, filePath }: MarkdownPreviewPr
   }, [content, copiedCodeIdx, dirPath]);
 
   return (
-    <div className="h-full w-full flex flex-col bg-[#140f0c] text-[#ece1d8] overflow-y-auto p-6 selection:bg-amber-900/60 select-text">
+    <div className="h-full w-full flex flex-col bg-[#141414] text-[#F1ECEC] overflow-y-auto p-6 selection:bg-[#4B4646]/80 select-text">
       {renderedElements}
     </div>
   );

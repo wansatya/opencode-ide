@@ -123,53 +123,53 @@ export default function StartupVisualization({ bin }: { bin?: string | null }) {
   }, []);
 
   return (
-    <div className="absolute inset-0 bg-[#140f0c]/90 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 p-4 overflow-hidden">
+    <div className="absolute inset-0 bg-[#141414]/90 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 p-4 overflow-hidden">
       {/* canvas waveform background */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-60" style={{ width: "100%", height: "100%" }} />
 
       {/* subtle vignette */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#140f0c] via-transparent to-transparent pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#140f0c]/40 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#141414]/40 via-transparent to-transparent pointer-events-none" />
 
       {/* center content */}
       <div className="relative flex flex-col items-center gap-4 w-full max-w-[320px]">
         {/* pulsing logo */}
         <div className="relative w-20 h-20 flex items-center justify-center">
           {/* outer rings */}
-          <div className="absolute inset-0 rounded-full border border-amber-500/20 animate-ping" style={{ animationDuration: "2s" }} />
-          <div className="absolute inset-1 rounded-full border border-amber-500/15 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.4s" }} />
-          <div className="absolute inset-2 rounded-full border border-amber-500/10 animate-ping" style={{ animationDuration: "3s", animationDelay: "0.8s" }} />
+          <div className="absolute inset-0 rounded-full border border-[#B7B1B1]/20 animate-ping" style={{ animationDuration: "2s" }} />
+          <div className="absolute inset-1 rounded-full border border-[#B7B1B1]/15 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.4s" }} />
+          <div className="absolute inset-2 rounded-full border border-[#B7B1B1]/10 animate-ping" style={{ animationDuration: "3s", animationDelay: "0.8s" }} />
           {/* core */}
-          <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2e2118] to-[#231a14] border border-amber-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.25)]">
-            <Terminal size={22} className="text-amber-400" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#140f0c] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+          <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-[#4B4646] to-[#262626] border border-[#B7B1B1]/30 flex items-center justify-center shadow-[0_0_30px_rgba(183,177,177,0.15)]">
+            <Terminal size={22} className="text-[#F1ECEC]" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#141414] animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
           </div>
         </div>
 
         {/* title */}
         <div className="text-center">
-          <div className="text-[11px] tracking-[0.2em] text-amber-500/70 font-medium uppercase flex items-center gap-1.5 justify-center">
-            <Zap size={10} className="text-amber-500/60" /> Cockpit
+          <div className="text-[11px] tracking-[0.2em] text-[#B7B1B1] font-medium uppercase flex items-center gap-1.5 justify-center">
+            <Zap size={10} className="text-[#B7B1B1]" /> Cockpit
           </div>
-          <h3 className="text-sm font-semibold text-[#ece1d8] mt-1 tracking-wide">Starting OpenCode</h3>
-          <p className="text-xs text-[#9e8b7d] mt-1 font-mono h-4">
+          <h3 className="text-sm font-semibold text-[#F1ECEC] mt-1 tracking-wide">Starting OpenCode</h3>
+          <p className="text-xs text-[#B7B1B1] mt-1 font-mono h-4">
             <span className="inline-flex items-center gap-1">
-              <Cpu size={11} className="text-[#5c4b3e]" />
+              <Cpu size={11} className="text-[#B7B1B1]" />
               <span className="tabular-nums">{STAGES[stageIdx]}</span>
             </span>
           </p>
-          {bin && <p className="text-[10px] text-[#5c4b3e] font-mono mt-1 truncate max-w-[260px]">{bin}</p>}
+          {bin && <p className="text-[10px] text-[#B7B1B1] font-mono mt-1 truncate max-w-[260px]">{bin}</p>}
         </div>
 
         {/* progress bar */}
         <div className="w-full">
-          <div className="h-1 w-full bg-[#2e2118] rounded-full overflow-hidden border border-[#36281e]/50">
-            <div className="h-full w-1/3 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-500 rounded-full animate-[shimmer_1.2s_ease-in-out_infinite]" style={{ animationName: "shimmer-slide" }} />
+          <div className="h-1 w-full bg-[#262626] rounded-full overflow-hidden border border-[#333333]/50">
+            <div className="h-full w-1/3 bg-gradient-to-r from-[#4B4646] via-[#B7B1B1] to-[#F1ECEC] rounded-full animate-[shimmer_1.2s_ease-in-out_infinite]" style={{ animationName: "shimmer-slide" }} />
           </div>
           <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-[#5c4b3e] font-mono">PTY  •  xterm-256color</span>
-            <span className="text-[10px] text-[#5c4b3e] font-mono flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-[10px] text-[#B7B1B1] font-mono">PTY  •  xterm-256color</span>
+            <span className="text-[10px] text-[#B7B1B1] font-mono flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-[#F1ECEC] animate-pulse" />
               connecting
             </span>
           </div>
@@ -177,14 +177,14 @@ export default function StartupVisualization({ bin }: { bin?: string | null }) {
 
         {/* dots */}
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500/80 animate-bounce" style={{ animationDelay: "0s" }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style={{ animationDelay: "0.15s" }} />
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500/40 animate-bounce" style={{ animationDelay: "0.3s" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F1ECEC] animate-bounce" style={{ animationDelay: "0s" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#B7B1B1] animate-bounce" style={{ animationDelay: "0.15s" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#4B4646] animate-bounce" style={{ animationDelay: "0.3s" }} />
         </div>
       </div>
 
       {/* bottom hint */}
-      <div className="absolute bottom-3 text-[10px] text-[#5c4b3e] font-mono tracking-wide">
+      <div className="absolute bottom-3 text-[10px] text-[#B7B1B1] font-mono tracking-wide">
         <span className="opacity-60">TUI probes answered automatically</span>
       </div>
 

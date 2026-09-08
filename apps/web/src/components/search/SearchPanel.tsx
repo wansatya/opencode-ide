@@ -33,7 +33,7 @@ function HighlightText({ text, query, matchCase, useRegex }: { text: string; que
     <span>
       {parts.map((p, idx) =>
         p.isMatch ? (
-          <span key={idx} className="bg-amber-500/30 text-amber-200 font-semibold px-0.5 rounded">
+          <span key={idx} className="bg-[#4B4646] text-[#F1ECEC] font-semibold px-0.5 rounded border border-[#B7B1B1]/40">
             {p.text}
           </span>
         ) : (
@@ -89,18 +89,18 @@ export default function SearchPanel() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#1a130f] text-[#ece1d8] overflow-hidden">
+    <div className="h-full flex flex-col bg-[#1c1c1c] text-[#F1ECEC] overflow-hidden">
       {/* Header Controls */}
-      <div className="p-2.5 border-b border-[#36281e] space-y-2 shrink-0">
-        <div className="flex items-center justify-between text-xs font-semibold text-amber-200 tracking-wide">
+      <div className="p-2.5 border-b border-[#333333] space-y-2 shrink-0">
+        <div className="flex items-center justify-between text-xs font-semibold text-[#F1ECEC] tracking-wide">
           <div className="flex items-center gap-1.5">
-            <Search size={14} className="text-amber-400" />
+            <Search size={14} className="text-[#B7B1B1]" />
             <span>WORKSPACE SEARCH</span>
           </div>
           {query && (
             <button
               onClick={clearSearch}
-              className="p-1 text-[#9e8b7d] hover:text-[#ece1d8] hover:bg-[#2e2118] rounded transition-colors"
+              className="p-1 text-[#B7B1B1] hover:text-[#F1ECEC] hover:bg-[#2c2c2c] rounded transition-colors"
               title="Clear Search"
             >
               <X size={13} />
@@ -115,9 +115,9 @@ export default function SearchPanel() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search text in files…"
-            className="w-full pl-8 pr-16 py-1.5 rounded bg-[#140f0c] border border-[#36281e] text-xs text-[#ece1d8] outline-none focus:border-[#d97706] placeholder:text-[#6e5a4c]"
+            className="w-full pl-8 pr-16 py-1.5 rounded bg-[#141414] border border-[#333333] text-xs text-[#F1ECEC] outline-none focus:border-[#B7B1B1] placeholder:text-[#7c7777]"
           />
-          <Search size={13} className="absolute left-2.5 text-[#9e8b7d] pointer-events-none" />
+          <Search size={13} className="absolute left-2.5 text-[#B7B1B1] pointer-events-none" />
 
           <div className="absolute right-1.5 flex items-center gap-1">
             <button
@@ -127,8 +127,8 @@ export default function SearchPanel() {
               }}
               title="Match Case (Aa)"
               className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${matchCase
-                ? "bg-amber-700 text-white border-amber-600 font-bold"
-                : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8]"
+                ? "bg-[#4B4646] text-white border-[#B7B1B1] font-bold"
+                : "bg-[#262626] text-[#B7B1B1] border-[#333333] hover:text-[#F1ECEC]"
                 }`}
             >
               Aa
@@ -140,8 +140,8 @@ export default function SearchPanel() {
               }}
               title="Use Regular Expression (.*)"
               className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${useRegex
-                ? "bg-amber-700 text-white border-amber-600 font-bold"
-                : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8]"
+                ? "bg-[#4B4646] text-white border-[#B7B1B1] font-bold"
+                : "bg-[#262626] text-[#B7B1B1] border-[#333333] hover:text-[#F1ECEC]"
                 }`}
             >
               .*
@@ -151,18 +151,18 @@ export default function SearchPanel() {
 
         {/* Summary info */}
         {query && !isSearching && (
-          <div className="text-[11px] text-[#9e8b7d] flex items-center justify-between pt-0.5">
+          <div className="text-[11px] text-[#B7B1B1] flex items-center justify-between pt-0.5">
             <span>
               {totalMatches > 0
                 ? `${totalMatches} match${totalMatches > 1 ? "es" : ""} in ${filesCount} file${filesCount > 1 ? "s" : ""}`
                 : "No matches found"}
             </span>
             <div className="flex items-center gap-1.5">
-              {truncated && <span className="text-amber-400/90 font-medium">Cap (500) reached</span>}
+              {truncated && <span className="text-[#B7B1B1] font-medium">Cap (500) reached</span>}
               {totalMatches > 0 && (
                 <button
                   onClick={toggleExpandCollapseAll}
-                  className="px-1.5 py-0.5 text-[#c2ab99] hover:text-[#ece1d8] transition-colors flex items-center gap-1 text-[10px]"
+                  className="px-1.5 py-0.5 text-[#B7B1B1] hover:text-[#F1ECEC] transition-colors flex items-center gap-1 text-[10px]"
                   title={isAllCollapsed ? "Expand all file groups" : "Collapse all file groups"}
                 >
                   {isAllCollapsed ? <CopyPlus size={12} /> : <CopyMinus size={12} />}
@@ -176,8 +176,8 @@ export default function SearchPanel() {
       {/* Results content */}
       <div className="flex-1 overflow-y-auto">
         {isSearching && (
-          <div className="flex items-center gap-2 p-4 text-xs text-[#9e8b7d]">
-            <Loader2 size={14} className="animate-spin text-amber-400" />
+          <div className="flex items-center gap-2 p-4 text-xs text-[#B7B1B1]">
+            <Loader2 size={14} className="animate-spin text-[#B7B1B1]" />
             <span>Searching across files…</span>
           </div>
         )}
@@ -190,13 +190,13 @@ export default function SearchPanel() {
         )}
 
         {!isSearching && !error && query && results.length === 0 && (
-          <div className="p-4 text-xs text-[#9e8b7d] text-center">
-            No results found for &ldquo;<span className="text-[#ece1d8]">{query}</span>&rdquo;.
+          <div className="p-4 text-xs text-[#B7B1B1] text-center">
+            No results found for &ldquo;<span className="text-[#F1ECEC]">{query}</span>&rdquo;.
           </div>
         )}
 
         {!isSearching && !query && (
-          <div className="p-4 text-xs text-[#8c7767] text-center leading-relaxed">
+          <div className="p-4 text-xs text-[#B7B1B1] text-center leading-relaxed">
             Type text in the search bar above or on the topbar to find matches across your project files.
           </div>
         )}
@@ -212,42 +212,42 @@ export default function SearchPanel() {
               const isCollapsed = !!collapsedFiles[fileGroup.path];
 
               return (
-                <div key={fileGroup.path} className="border-b border-[#281e17] last:border-b-0">
+                <div key={fileGroup.path} className="border-b border-[#262626] last:border-b-0">
                   {/* File Header */}
                   <button
                     onClick={() => toggleCollapse(fileGroup.path)}
-                    className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-xs hover:bg-[#281f18] text-left transition-colors group select-none"
+                    className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-xs hover:bg-[#2c2c2c] text-left transition-colors group select-none"
                   >
                     {isCollapsed ? (
-                      <ChevronRight size={13} className="text-[#9e8b7d] shrink-0" />
+                      <ChevronRight size={13} className="text-[#B7B1B1] shrink-0" />
                     ) : (
-                      <ChevronDown size={13} className="text-[#9e8b7d] shrink-0" />
+                      <ChevronDown size={13} className="text-[#B7B1B1] shrink-0" />
                     )}
                     <Icon size={14} className={`${iconClass} shrink-0`} />
-                    <span className="font-medium text-[#ece1d8] truncate flex-1">{fileName}</span>
+                    <span className="font-medium text-[#F1ECEC] truncate flex-1">{fileName}</span>
                     {dirPath && (
-                      <span className="text-[10px] text-[#7c6a5c] truncate max-w-[100px]" title={dirPath}>
+                      <span className="text-[10px] text-[#B7B1B1] truncate max-w-[100px]" title={dirPath}>
                         {dirPath}
                       </span>
                     )}
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#2e2118] text-amber-300 font-medium shrink-0 ml-1 border border-[#36281e]">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#4B4646] text-[#F1ECEC] font-medium shrink-0 ml-1 border border-[#B7B1B1]/30">
                       {fileGroup.matches.length}
                     </span>
                   </button>
 
                   {/* Matches List */}
                   {!isCollapsed && (
-                    <div className="bg-[#140f0c]/60 py-0.5">
+                    <div className="bg-[#141414]/60 py-0.5">
                       {fileGroup.matches.map((m: SearchMatchItem, idx: number) => (
                         <button
                           key={`${fileGroup.path}:${m.line}:${m.column}:${idx}`}
                           onClick={() => jumpTo(fileGroup.path, m.line, m.column, m.matchLength)}
-                          className="w-full flex items-start gap-2 px-3 py-1 text-xs hover:bg-[#33251b] text-left transition-colors group cursor-pointer border-l-2 border-transparent hover:border-amber-500"
+                          className="w-full flex items-start gap-2 px-3 py-1 text-xs hover:bg-[#2c2c2c] text-left transition-colors group cursor-pointer border-l-2 border-transparent hover:border-[#B7B1B1]"
                         >
-                          <span className="font-mono text-[11px] text-[#8c7767] shrink-0 min-w-[28px] text-right group-hover:text-amber-400">
+                          <span className="font-mono text-[11px] text-[#B7B1B1] shrink-0 min-w-[28px] text-right group-hover:text-[#F1ECEC]">
                             {m.line}:
                           </span>
-                          <span className="font-mono text-[11px] text-[#c2ab99] truncate flex-1 leading-snug">
+                          <span className="font-mono text-[11px] text-[#F1ECEC] truncate flex-1 leading-snug">
                             <HighlightText
                               text={m.text}
                               query={query}

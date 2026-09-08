@@ -187,7 +187,7 @@ export default function StatusBar() {
   };
 
   return (
-    <div className="h-8 flex items-center gap-3 px-3 text-xs text-[#9e8b7d] border-t border-[#36281e] bg-[#231a14] shrink-0">
+    <div className="h-8 flex items-center gap-3 px-3 text-xs text-[#B7B1B1] border-t border-[#333333] bg-[#1c1c1c] shrink-0">
       <span className="whitespace-nowrap hidden sm:inline">
         {files.length} changed · {added} added · {mod} modified
       </span>
@@ -196,23 +196,23 @@ export default function StatusBar() {
 
       {isRepo && (
         <>
-          <div className="h-4 w-px bg-[#36281e] shrink-0 hidden md:block" />
+          <div className="h-4 w-px bg-[#333333] shrink-0 hidden md:block" />
           <div className="flex items-center gap-1.5 min-w-0">
-            <GitMerge size={12} className="shrink-0 text-[#9e8b7d] hidden sm:block" />
+            <GitMerge size={12} className="shrink-0 text-[#B7B1B1] hidden sm:block" />
             <span className="hidden lg:inline whitespace-nowrap">Merge</span>
             <select
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
               disabled={merging || loadingBranches || branches.length === 0}
               title={noOtherBranches ? "No other branches to merge" : "Choose branch to merge into current"}
-              className="max-w-[160px] bg-[#2e2118] border border-[#36281e] rounded px-1.5 py-0.5 text-xs text-[#c2ab99] outline-none focus:border-[#d97706] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="max-w-[160px] bg-[#262626] border border-[#333333] rounded px-1.5 py-0.5 text-xs text-[#F1ECEC] outline-none focus:border-[#B7B1B1] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loadingBranches && <option value="">Loading…</option>}
               {!loadingBranches && branches.length === 0 && <option value="">No branches</option>}
               {!loadingBranches && branches.map((b) => <option key={b} value={b}>{b}</option>)}
             </select>
-            <span className="hidden sm:inline text-[#5c4737]">→</span>
-            <span className="hidden sm:inline truncate max-w-[100px] text-[#c2ab99]" title={`into ${branch ?? "current"}`}>
+            <span className="hidden sm:inline text-[#4B4646]">→</span>
+            <span className="hidden sm:inline truncate max-w-[100px] text-[#B7B1B1]" title={`into ${branch ?? "current"}`}>
               {branch ?? "current"}
             </span>
             <button
@@ -221,8 +221,8 @@ export default function StatusBar() {
               title={selected ? `Merge ${selected} into ${branch ?? "current"}${deleteAfter ? " and delete source" : ""}` : "Select a branch first"}
               className={`flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-medium whitespace-nowrap transition-colors ${
                 canMerge
-                  ? "bg-amber-700 hover:bg-amber-600 text-white border-amber-600"
-                  : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] opacity-60 cursor-not-allowed"
+                  ? "bg-[#4B4646] hover:bg-[#5e5959] text-white border-[#B7B1B1]/40"
+                  : "bg-[#262626] text-[#B7B1B1] border-[#333333] opacity-60 cursor-not-allowed"
               }`}
             >
               {merging ? <Loader2 size={11} className="animate-spin" /> : <GitMerge size={11} />}
@@ -231,16 +231,16 @@ export default function StatusBar() {
             <label
               title="Delete source branch after successful merge (git branch -d)"
               className={`flex items-center gap-1 px-1.5 py-0.5 rounded border cursor-pointer select-none whitespace-nowrap ${
-                deleteAfter ? "bg-[#453225] border-[#5c4737] text-amber-200" : "bg-[#2e2118] border-[#36281e] text-[#9e8b7d] hover:bg-[#4a3627]"
+                deleteAfter ? "bg-[#4B4646] border-[#B7B1B1] text-[#F1ECEC]" : "bg-[#262626] border-[#333333] text-[#B7B1B1] hover:bg-[#333333]"
               } ${merging ? "opacity-50 pointer-events-none" : ""}`}
             >
               <input
                 type="checkbox"
                 checked={deleteAfter}
                 onChange={(e) => setDeleteAfter(e.target.checked)}
-                className="accent-amber-600 w-3 h-3"
+                className="accent-[#4B4646] w-3 h-3"
               />
-              <Trash2 size={11} className={deleteAfter ? "text-amber-400" : "text-[#9e8b7d]"} />
+              <Trash2 size={11} className={deleteAfter ? "text-[#F1ECEC]" : "text-[#B7B1B1]"} />
               <span className="hidden xl:inline">delete after</span>
               <span className="xl:hidden">del</span>
             </label>

@@ -99,43 +99,43 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
   const isDisabled = !isRepo;
 
   return (
-    <div className="h-11 flex items-center gap-3 px-3 border-b border-[#36281e] bg-[#231a14] text-sm shrink-0">
+    <div className="h-11 flex items-center gap-3 px-3 border-b border-[#333333] bg-[#1c1c1c] text-sm shrink-0">
       <button
         onClick={() => setAboutOpen(true)}
-        className="font-semibold text-amber-500 hover:text-amber-400 hover:bg-[#2e2118] px-1.5 py-0.5 -mx-1.5 rounded transition-colors cursor-pointer flex items-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+        className="font-semibold text-[#F1ECEC] hover:text-white hover:bg-[#2c2c2c] px-1.5 py-0.5 -mx-1.5 rounded transition-colors cursor-pointer flex items-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-[#B7B1B1]/40"
         title="Click to view About OpenCode IDE"
       >
         <img src="/opencode.webp" alt="OpenCode IDE Logo" className="w-4 h-4 object-contain shrink-0" />
         <span>OpenCode IDE</span>
       </button>
-      <span className="text-[#5c4737]">|</span>
-      <span className="text-[#ece1d8] font-medium">{name ?? "No repo"}</span>
-      {root && <span className="text-xs text-[#9e8b7d] truncate max-w-[280px]">{root}</span>}
+      <span className="text-[#4B4646]">|</span>
+      <span className="text-[#F1ECEC] font-medium">{name ?? "No repo"}</span>
+      {root && <span className="text-xs text-[#B7B1B1] truncate max-w-[280px]">{root}</span>}
       <div ref={wrapRef} className="relative">
         <button
           onClick={() => { if (!isDisabled) setOpen((v) => !v); }}
           disabled={isDisabled}
           title={isDisabled ? "Not a git repository" : "Switch branch"}
-          className={`flex items-center gap-1 text-xs px-1.5 py-1 rounded border ${isDisabled ? "opacity-40 cursor-not-allowed border-transparent text-[#9e8b7d]" : "bg-[#2e2118] border-[#36281e] hover:bg-[#4a3627] text-[#c2ab99] hover:text-[#ece1d8]"} `}
+          className={`flex items-center gap-1 text-xs px-1.5 py-1 rounded border ${isDisabled ? "opacity-40 cursor-not-allowed border-transparent text-[#B7B1B1]" : "bg-[#262626] border-[#333333] hover:bg-[#333333] text-[#B7B1B1] hover:text-[#F1ECEC]"} `}
         >
           <GitBranch size={13} />
           <span className="max-w-[160px] truncate">{displayBranch}</span>
-          {!isDisabled && <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""} text-[#9e8b7d]`} />}
+          {!isDisabled && <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""} text-[#B7B1B1]`} />}
         </button>
         {open && (
-          <div className="absolute top-8 left-0 z-50 min-w-[220px] max-w-[320px] rounded-md border border-[#36281e] bg-[#1a130f] shadow-xl overflow-hidden">
-            <div className="px-3 py-2 text-xs font-medium text-[#9e8b7d] border-b border-[#36281e] flex items-center justify-between">
+          <div className="absolute top-8 left-0 z-50 min-w-[220px] max-w-[320px] rounded-md border border-[#333333] bg-[#1c1c1c] shadow-xl overflow-hidden">
+            <div className="px-3 py-2 text-xs font-medium text-[#B7B1B1] border-b border-[#333333] flex items-center justify-between">
               <span>Switch branch</span>
-              <button onClick={() => fetchBranches()} className="p-1 rounded hover:bg-[#2e2118] text-[#9e8b7d] hover:text-[#ece1d8]" title="Refresh branches">
+              <button onClick={() => fetchBranches()} className="p-1 rounded hover:bg-[#2c2c2c] text-[#B7B1B1] hover:text-[#F1ECEC]" title="Refresh branches">
                 <RefreshCw size={12} className={loadingBranches ? "animate-spin" : ""} />
               </button>
             </div>
             <div className="max-h-[260px] overflow-y-auto py-1">
               {loadingBranches && (
-                <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#9e8b7d]"><Loader2 size={12} className="animate-spin" />Loading branches…</div>
+                <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#B7B1B1]"><Loader2 size={12} className="animate-spin" />Loading branches…</div>
               )}
               {!loadingBranches && branches.length === 0 && !branchError && (
-                <div className="px-3 py-2 text-xs text-[#9e8b7d]">No branches found.</div>
+                <div className="px-3 py-2 text-xs text-[#B7B1B1]">No branches found.</div>
               )}
               {!loadingBranches && branches.map((b) => {
                 const isCurrent = b === current || b === branch;
@@ -145,22 +145,22 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
                     key={b}
                     onClick={() => handleCheckout(b)}
                     disabled={!!switching}
-                    className={`flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs hover:bg-[#281f18] ${isCurrent ? "bg-[#453225] text-amber-100 font-medium" : "text-[#c2ab99] hover:text-[#ece1d8]"} disabled:opacity-60`}
+                    className={`flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs hover:bg-[#2c2c2c] ${isCurrent ? "bg-[#4B4646] text-[#F1ECEC] font-medium" : "text-[#B7B1B1] hover:text-[#F1ECEC]"} disabled:opacity-60`}
                   >
-                    <GitBranch size={12} className={`shrink-0 ${isCurrent ? "text-amber-400" : "text-[#9e8b7d]"}`} />
+                    <GitBranch size={12} className={`shrink-0 ${isCurrent ? "text-[#F1ECEC]" : "text-[#B7B1B1]"}`} />
                     <span className="truncate flex-1">{b}</span>
-                    {isSwitching ? <Loader2 size={12} className="animate-spin shrink-0" /> : isCurrent ? <Check size={12} className="shrink-0 text-amber-400" /> : null}
+                    {isSwitching ? <Loader2 size={12} className="animate-spin shrink-0" /> : isCurrent ? <Check size={12} className="shrink-0 text-[#F1ECEC]" /> : null}
                   </button>
                 );
               })}
             </div>
             {branchError && (
-              <div className="px-3 py-2 text-xs text-red-300 border-t border-[#36281e] bg-[#3a1b18]/50 flex items-start gap-1.5">
+              <div className="px-3 py-2 text-xs text-red-300 border-t border-[#333333] bg-[#3a1b18]/50 flex items-start gap-1.5">
                 <AlertTriangle size={12} className="shrink-0 mt-0.5" />
                 <span className="break-words">{branchError}</span>
               </div>
             )}
-            <div className="px-3 py-1.5 text-[11px] text-[#7c6a5c] border-t border-[#36281e] bg-[#140f0c]">
+            <div className="px-3 py-1.5 text-[11px] text-[#B7B1B1] border-t border-[#333333] bg-[#141414]">
               Uncommitted changes may block switching.
             </div>
           </div>
@@ -174,16 +174,16 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearchKeyDown}
             placeholder="Search code or text in workspace… (Press Enter)"
-            className="w-full pl-8 pr-8 py-1 rounded-md bg-[#140f0c] border border-[#36281e] text-xs text-[#ece1d8] outline-none focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]/40 placeholder:text-[#6e5a4c] transition-all shadow-inner"
+            className="w-full pl-8 pr-8 py-1 rounded-md bg-[#141414] border border-[#333333] text-xs text-[#F1ECEC] outline-none focus:border-[#B7B1B1] focus:ring-1 focus:ring-[#B7B1B1]/40 placeholder:text-[#7c7777] transition-all shadow-inner"
           />
-          <Search size={13} className="absolute left-2.5 text-[#9e8b7d] pointer-events-none" />
+          <Search size={13} className="absolute left-2.5 text-[#B7B1B1] pointer-events-none" />
           {isSearching ? (
-            <Loader2 size={13} className="absolute right-2.5 text-amber-400 animate-spin" />
+            <Loader2 size={13} className="absolute right-2.5 text-[#B7B1B1] animate-spin" />
           ) : searchQuery ? (
             <button
               type="button"
               onClick={() => clearSearch()}
-              className="absolute right-2 text-[#9e8b7d] hover:text-[#ece1d8] p-0.5 rounded transition-colors"
+              className="absolute right-2 text-[#B7B1B1] hover:text-[#F1ECEC] p-0.5 rounded transition-colors"
               title="Clear Search"
             >
               <X size={13} />
@@ -191,9 +191,9 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
           ) : null}
         </form>
       </div>
-      <span className="flex items-center gap-1.5 text-xs text-[#c2ab99]" title={error ?? oc}><Circle size={9} fill={colors[oc] ?? "#f85149"} color={colors[oc] ?? "#f85149"} />OpenCode {oc === "error" && error?.toLowerCase().includes("not found") ? "not found — install first" : oc}</span>
-      <button onClick={onOpen} className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]"><FolderOpen size={13} />Open</button>
-      <button onClick={() => { useRepo.getState().load(); useGit.getState().refresh(); }} className="p-1.5 rounded hover:bg-[#2e2118] text-[#c2ab99] hover:text-[#ece1d8]" title="Refresh"><RefreshCw size={13} /></button>
+      <span className="flex items-center gap-1.5 text-xs text-[#B7B1B1]" title={error ?? oc}><Circle size={9} fill={colors[oc] ?? "#f85149"} color={colors[oc] ?? "#f85149"} />OpenCode {oc === "error" && error?.toLowerCase().includes("not found") ? "not found — install first" : oc}</span>
+      <button onClick={onOpen} className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC]"><FolderOpen size={13} />Open</button>
+      <button onClick={() => { useRepo.getState().load(); useGit.getState().refresh(); }} className="p-1.5 rounded hover:bg-[#2c2c2c] text-[#B7B1B1] hover:text-[#F1ECEC]" title="Refresh"><RefreshCw size={13} /></button>
     </div>
   );
 }

@@ -111,15 +111,15 @@ export default function App() {
       <TopBar onOpen={() => setPicker(true)} />
       <div className="flex-1 flex min-h-0">
         {showLeft && (
-          <div style={{ width: leftW }} className="border-r border-[#36281e] bg-[#1a130f] shrink-0 overflow-hidden flex flex-col h-full">
+          <div style={{ width: leftW }} className="border-r border-[#333333] bg-[#1c1c1c] shrink-0 overflow-hidden flex flex-col h-full">
             {/* Left Sidebar Tab Header */}
-            <div className="flex border-b border-[#36281e] bg-[#140f0c] px-2 pt-1.5 shrink-0 gap-1 text-xs">
+            <div className="flex border-b border-[#333333] bg-[#141414] px-2 pt-1.5 shrink-0 gap-1 text-xs">
               <button
                 onClick={() => setLeftTab("repository")}
                 className={`px-2.5 py-1 rounded-t border-b-2 font-medium flex items-center gap-1.5 transition-colors ${
                   leftTab === "repository"
-                    ? "border-amber-500 text-amber-300 bg-[#1a130f]"
-                    : "border-transparent text-[#9e8b7d] hover:text-[#ece1d8]"
+                    ? "border-[#B7B1B1] text-[#F1ECEC] bg-[#1c1c1c]"
+                    : "border-transparent text-[#B7B1B1] hover:text-[#F1ECEC]"
                 }`}
               >
                 <FolderTree size={13} />
@@ -129,8 +129,8 @@ export default function App() {
                 onClick={() => setLeftTab("search")}
                 className={`px-2.5 py-1 rounded-t border-b-2 font-medium flex items-center gap-1.5 transition-colors ${
                   leftTab === "search"
-                    ? "border-amber-500 text-amber-300 bg-[#1a130f]"
-                    : "border-transparent text-[#9e8b7d] hover:text-[#ece1d8]"
+                    ? "border-[#B7B1B1] text-[#F1ECEC] bg-[#1c1c1c]"
+                    : "border-transparent text-[#B7B1B1] hover:text-[#F1ECEC]"
                 }`}
               >
                 <Search size={13} />
@@ -143,10 +143,10 @@ export default function App() {
             </div>
           </div>
         )}
-        <div onMouseDown={() => (drag.current = "l")} className="w-1 cursor-col-resize hover:bg-[#d97706] shrink-0" />
-        <div className="flex-1 min-w-[400px] min-h-0 bg-[#140f0c] relative"><EditorPanel /></div>
-        <div onMouseDown={() => (drag.current = "r")} className="w-1 cursor-col-resize hover:bg-[#d97706] shrink-0" />
-        {showRight && <div style={{ width: rightW }} className="border-l border-[#36281e] bg-[#140f0c] shrink-0 min-h-0"><TerminalPanel /></div>}
+        <div onMouseDown={() => (drag.current = "l")} className="w-1 cursor-col-resize hover:bg-[#B7B1B1] shrink-0" />
+        <div className="flex-1 min-w-[400px] min-h-0 bg-[#141414] relative"><EditorPanel /></div>
+        <div onMouseDown={() => (drag.current = "r")} className="w-1 cursor-col-resize hover:bg-[#B7B1B1] shrink-0" />
+        {showRight && <div style={{ width: rightW }} className="border-l border-[#333333] bg-[#141414] shrink-0 min-h-0"><TerminalPanel /></div>}
       </div>
       <StatusBar />
       <RepositoryPicker open={picker} onClose={() => setPicker(false)} />

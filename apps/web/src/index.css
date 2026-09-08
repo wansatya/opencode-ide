@@ -1,8 +1,8 @@
 @tailwind base; @tailwind components; @tailwind utilities;
 html, body, #root { height: 100%; }
-body { background: #140f0c; color: #ece1d8; font-family: Inter, system-ui, sans-serif; }
+body { background: #141414; color: #F1ECEC; font-family: Inter, system-ui, sans-serif; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #1a130f; }
-::-webkit-scrollbar-thumb { background: #36281e; border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: #4a3627; }
+::-webkit-scrollbar-track { background: #1c1c1c; }
+::-webkit-scrollbar-thumb { background: #333333; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #4B4646; }
 

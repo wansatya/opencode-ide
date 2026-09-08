@@ -25,18 +25,18 @@ function langOf(p: string) {
 }
 
 const handleBeforeMount = (monaco: any) => {
-  monaco.editor.defineTheme("dark-brown", {
+  monaco.editor.defineTheme("opencode-dark", {
     base: "vs-dark",
     inherit: true,
     rules: [],
     colors: {
-      "editor.background": "#140f0c",
-      "editorGutter.background": "#140f0c",
-      "editor.lineHighlightBackground": "#231a14",
-      "editor.selectionBackground": "#4a3627",
-      "editor.inactiveSelectionBackground": "#33251a",
-      "diffEditor.insertedTextBackground": "#2a3d2480",
-      "diffEditor.removedTextBackground": "#4d232380",
+      "editor.background": "#141414",
+      "editorGutter.background": "#141414",
+      "editor.lineHighlightBackground": "#1f1f1f",
+      "editor.selectionBackground": "#4B4646",
+      "editor.inactiveSelectionBackground": "#333333",
+      "diffEditor.insertedTextBackground": "#1e3a2480",
+      "diffEditor.removedTextBackground": "#4a1e1e80",
     },
   });
   // File viewer - not a full TS project, so disable semantic/suggestion diagnostics
@@ -189,7 +189,7 @@ export default function EditorPanel() {
     if (monaco && !document.getElementById("cockpit-find-style")) {
       const s = document.createElement("style");
       s.id = "cockpit-find-style";
-      s.textContent = `.findMatchBg{background: #4a362780; border: 1px solid #d97706; } .findMatchCurrentBg{background: #f59e0b50; border: 1px solid #f59e0b; }`;
+      s.textContent = `.findMatchBg{background: #4B464680; border: 1px solid #B7B1B1; } .findMatchCurrentBg{background: #6e686880; border: 1px solid #F1ECEC; }`;
       document.head.appendChild(s);
     }
   }, [getActiveEditor]);
@@ -577,17 +577,17 @@ export default function EditorPanel() {
 
   if (!selectedFile) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 text-sm text-[#9e8b7d] bg-[#140f0c]">
+      <div className="h-full flex flex-col items-center justify-center gap-4 text-sm text-[#B7B1B1] bg-[#141414]">
         <img src="/logo.svg" alt="OpenCode Logo" className="h-9 opacity-70 select-none" />
         <span>Select a file from the repository.</span>
       </div>
     );
   }
   const gitSt = statusMap[selectedFile]?.status;
-  const activeToggleClass = (on: boolean) => on ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8] hover:bg-[#4a3627]";
+  const activeToggleClass = (on: boolean) => on ? "bg-[#4B4646] text-[#F1ECEC] border-[#B7B1B1]" : "bg-[#262626] text-[#B7B1B1] border-[#333333] hover:text-[#F1ECEC] hover:bg-[#333333]";
   return (
-    <div className="h-full flex flex-col bg-[#140f0c]">
-      <div className="flex items-center gap-1 px-2 h-9 border-b border-[#36281e] bg-[#231a14] shrink-0 relative z-40"
+    <div className="h-full flex flex-col bg-[#141414]">
+      <div className="flex items-center gap-1 px-2 h-9 border-b border-[#333333] bg-[#1c1c1c] shrink-0 relative z-40"
         onContextMenu={(e) => {
           // right-click on empty tab bar background -> show Close All only
           if ((e.target as HTMLElement).closest("[data-tab]")) return;
@@ -599,7 +599,7 @@ export default function EditorPanel() {
           {ed.openFiles.map((f) => (
             <span key={f} data-tab={f} onClick={() => useRepo.getState().select(f)}
               onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setTabMenu({ x: e.clientX, y: e.clientY, file: f }); }}
-              className={`flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer whitespace-nowrap shrink-0 ${f === selectedFile ? "bg-[#453225] text-amber-100 font-medium" : "text-[#9e8b7d] hover:bg-[#281f18] hover:text-[#ece1d8]"}`}>
+              className={`flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer whitespace-nowrap shrink-0 ${f === selectedFile ? "bg-[#4B4646] text-[#F1ECEC] font-medium" : "text-[#B7B1B1] hover:bg-[#2c2c2c] hover:text-[#F1ECEC]"}`}>
               {f.split("/").pop()}{ed.dirty[f] ? " •" : ""}
               <X size={12} className="hover:text-red-400" onClick={(e) => {
                 e.stopPropagation();
@@ -615,61 +615,61 @@ export default function EditorPanel() {
           ))}
         </div>
         {tabMenu && (
-          <div id="cockpit-tab-menu" style={{ left: tabMenu.x, top: tabMenu.y }} className="fixed z-50 min-w-[180px] rounded-md border border-[#36281e] bg-[#231a14] shadow-xl py-1 text-sm text-[#ece1d8] -translate-x-1 -translate-y-1"
+          <div id="cockpit-tab-menu" style={{ left: tabMenu.x, top: tabMenu.y }} className="fixed z-50 min-w-[180px] rounded-md border border-[#333333] bg-[#1c1c1c] shadow-xl py-1 text-sm text-[#F1ECEC] -translate-x-1 -translate-y-1"
             onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
             {tabMenu.file && (
               <>
-                <button onClick={() => closeTab(tabMenu.file!)} className="w-full text-left px-3 py-1.5 hover:bg-[#4a3627] text-xs">Close</button>
-                <button onClick={() => closeOthers(tabMenu.file!)} disabled={ed.openFiles.length <= 1} className="w-full text-left px-3 py-1.5 hover:bg-[#4a3627] text-xs disabled:opacity-40 disabled:cursor-not-allowed">Close Others</button>
-                <div className="my-1 border-t border-[#36281e]" />
+                <button onClick={() => closeTab(tabMenu.file!)} className="w-full text-left px-3 py-1.5 hover:bg-[#333333] text-xs">Close</button>
+                <button onClick={() => closeOthers(tabMenu.file!)} disabled={ed.openFiles.length <= 1} className="w-full text-left px-3 py-1.5 hover:bg-[#333333] text-xs disabled:opacity-40 disabled:cursor-not-allowed">Close Others</button>
+                <div className="my-1 border-t border-[#333333]" />
               </>
             )}
-            <button onClick={closeAll} className="w-full text-left px-3 py-1.5 hover:bg-[#4a3627] text-xs">Close All</button>
+            <button onClick={closeAll} className="w-full text-left px-3 py-1.5 hover:bg-[#333333] text-xs">Close All</button>
           </div>
         )}
         <div className="flex items-center gap-1 shrink-0">
         {/* Indentation control */}
         <div className="relative">
           <button id="cockpit-indent-btn" onClick={() => setShowIndent((v) => !v)}
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]" title="Indentation settings">
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC]" title="Indentation settings">
             <Settings2 size={12} />{editorInsertSpaces ? `Spaces: ${editorTabSize}` : `Tabs: ${editorTabSize}`}
           </button>
           {showIndent && (
-            <div id="cockpit-indent-dropdown" className="absolute top-8 right-0 bg-[#231a14] border border-[#36281e] rounded shadow-xl p-3 z-50 w-56">
-              <div className="text-xs font-medium text-amber-200 mb-2 flex items-center gap-1"><WrapText size={12}/>Indentation</div>
+            <div id="cockpit-indent-dropdown" className="absolute top-8 right-0 bg-[#1c1c1c] border border-[#333333] rounded shadow-xl p-3 z-50 w-56">
+              <div className="text-xs font-medium text-[#F1ECEC] mb-2 flex items-center gap-1"><WrapText size={12}/>Indentation</div>
               <div className="flex gap-1 mb-3">
-                <button onClick={() => setInsertSpaces(true)} className={`flex-1 text-xs px-2 py-1 rounded border ${editorInsertSpaces ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#ece1d8] border-[#36281e] hover:bg-[#4a3627]"}`}>Spaces</button>
-                <button onClick={() => setInsertSpaces(false)} className={`flex-1 text-xs px-2 py-1 rounded border ${!editorInsertSpaces ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#ece1d8] border-[#36281e] hover:bg-[#4a3627]"}`}>Tabs</button>
+                <button onClick={() => setInsertSpaces(true)} className={`flex-1 text-xs px-2 py-1 rounded border ${editorInsertSpaces ? "bg-[#4B4646] text-[#F1ECEC] border-[#B7B1B1]" : "bg-[#262626] text-[#F1ECEC] border-[#333333] hover:bg-[#333333]"}`}>Spaces</button>
+                <button onClick={() => setInsertSpaces(false)} className={`flex-1 text-xs px-2 py-1 rounded border ${!editorInsertSpaces ? "bg-[#4B4646] text-[#F1ECEC] border-[#B7B1B1]" : "bg-[#262626] text-[#F1ECEC] border-[#333333] hover:bg-[#333333]"}`}>Tabs</button>
               </div>
-              <div className="text-xs text-[#9e8b7d] mb-1">Tab size</div>
+              <div className="text-xs text-[#B7B1B1] mb-1">Tab size</div>
               <div className="flex gap-1">
                 {[2, 4].map((sz) => (
-                  <button key={sz} onClick={() => setTabSize(sz)} className={`flex-1 text-xs px-2 py-1 rounded border ${editorTabSize === sz ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#ece1d8] border-[#36281e] hover:bg-[#4a3627]"}`}>{sz}</button>
+                  <button key={sz} onClick={() => setTabSize(sz)} className={`flex-1 text-xs px-2 py-1 rounded border ${editorTabSize === sz ? "bg-[#4B4646] text-[#F1ECEC] border-[#B7B1B1]" : "bg-[#262626] text-[#F1ECEC] border-[#333333] hover:bg-[#333333]"}`}>{sz}</button>
                 ))}
               </div>
-              <div className="text-[11px] text-[#7c6a5c] mt-2 leading-tight">Applies to all open editors. Saved locally. Uses Monaco's insertSpaces/tabSize.</div>
+              <div className="text-[11px] text-[#B7B1B1] mt-2 leading-tight">Applies to all open editors. Saved locally. Uses Monaco's insertSpaces/tabSize.</div>
             </div>
           )}
         </div>
         {isMd && (
-          <div className="flex items-center rounded border border-[#36281e] bg-[#1a130f] p-0.5 text-xs">
+          <div className="flex items-center rounded border border-[#333333] bg-[#141414] p-0.5 text-xs">
             <button
               onClick={() => setMdMode("code")}
-              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "code" ? "bg-amber-700 text-white font-medium" : "text-[#9e8b7d] hover:text-[#ece1d8]"}`}
+              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "code" ? "bg-[#4B4646] text-[#F1ECEC] font-medium" : "text-[#B7B1B1] hover:text-[#F1ECEC]"}`}
               title="Code View"
             >
               Code
             </button>
             <button
               onClick={() => setMdMode("preview")}
-              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "preview" ? "bg-amber-700 text-white font-medium" : "text-[#9e8b7d] hover:text-[#ece1d8]"}`}
+              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "preview" ? "bg-[#4B4646] text-[#F1ECEC] font-medium" : "text-[#B7B1B1] hover:text-[#F1ECEC]"}`}
               title="Markdown Preview"
             >
               Preview
             </button>
             <button
               onClick={() => setMdMode("split")}
-              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "split" ? "bg-amber-700 text-white font-medium" : "text-[#9e8b7d] hover:text-[#ece1d8]"}`}
+              className={`px-2 py-0.5 rounded text-xs transition-colors ${mdMode === "split" ? "bg-[#4B4646] text-[#F1ECEC] font-medium" : "text-[#B7B1B1] hover:text-[#F1ECEC]"}`}
               title="Side-by-side Split View"
             >
               Split
@@ -681,67 +681,67 @@ export default function EditorPanel() {
           if (!showFind) setTimeout(() => document.getElementById("cockpit-find-input")?.focus(), 30);
           else clearDecorations();
         }}
-          className={`flex items-center gap-1 text-xs px-2 py-1 rounded border ${showFind ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#ece1d8] border-[#36281e] hover:bg-[#4a3627]"}`} title="Find & Replace (Ctrl+F / Ctrl+H)">
+          className={`flex items-center gap-1 text-xs px-2 py-1 rounded border ${showFind ? "bg-[#4B4646] text-[#F1ECEC] border-[#B7B1B1]" : "bg-[#262626] text-[#F1ECEC] border-[#333333] hover:bg-[#333333]"}`} title="Find & Replace (Ctrl+F / Ctrl+H)">
           <Search size={12} />{showFind ? "Find ✓" : "Find"}
         </button>
         {selectedFile && ed.dirty[selectedFile] && (
           <button onClick={save}
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-amber-700 hover:bg-amber-600 text-white font-medium shadow-sm" title="Save (Ctrl/Cmd+S)">
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#4B4646] hover:bg-[#5e5959] text-[#F1ECEC] font-medium shadow-sm" title="Save (Ctrl/Cmd+S)">
             <Save size={12} />Save •
           </button>
         )}
         {gitSt && gitSt !== "untracked" && (
           <button onClick={() => ed.setMode(selectedFile, mode === "code" ? "diff" : "code")}
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]">
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC]">
             <GitCompare size={12} />{mode === "code" ? "Diff" : "Code"}
           </button>
         )}
         </div>
       </div>
       {showFind && (
-        <div className="flex flex-col gap-2 px-2 py-2 border-b border-[#36281e] bg-[#1a130f] shrink-0">
+        <div className="flex flex-col gap-2 px-2 py-2 border-b border-[#333333] bg-[#1c1c1c] shrink-0">
           <div className="flex items-center gap-1">
-            <Search size={14} className="text-[#9e8b7d] shrink-0" />
+            <Search size={14} className="text-[#B7B1B1] shrink-0" />
             <input id="cockpit-find-input" value={findQuery} onChange={(e) => setFindQuery(e.target.value)} onKeyDown={(e) => {
               if (e.key === "Enter") { e.preventDefault(); if (e.shiftKey) goPrev(); else goNext(); }
               if (e.key === "Escape") { setShowFind(false); clearDecorations(); }
-            }} placeholder="Find" className="flex-1 min-w-0 px-2 py-1 rounded bg-[#140f0c] border border-[#36281e] text-sm text-[#ece1d8] outline-none focus:border-[#d97706] placeholder:text-[#635245]" />
-            <span className="text-xs text-[#9e8b7d] min-w-[48px] text-right whitespace-nowrap">{findQuery ? `${matchCount ? currentIdx + 1 : 0} / ${matchCount}` : ""}</span>
-            <button onClick={goPrev} disabled={matchCount === 0} title="Previous (Shift+Enter)" className="p-1 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] disabled:opacity-40"><ChevronUp size={14} /></button>
-            <button onClick={goNext} disabled={matchCount === 0} title="Next (Enter)" className="p-1 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] disabled:opacity-40"><ChevronDown size={14} /></button>
+            }} placeholder="Find" className="flex-1 min-w-0 px-2 py-1 rounded bg-[#141414] border border-[#333333] text-sm text-[#F1ECEC] outline-none focus:border-[#B7B1B1] placeholder:text-[#7c7777]" />
+            <span className="text-xs text-[#B7B1B1] min-w-[48px] text-right whitespace-nowrap">{findQuery ? `${matchCount ? currentIdx + 1 : 0} / ${matchCount}` : ""}</span>
+            <button onClick={goPrev} disabled={matchCount === 0} title="Previous (Shift+Enter)" className="p-1 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] disabled:opacity-40"><ChevronUp size={14} /></button>
+            <button onClick={goNext} disabled={matchCount === 0} title="Next (Enter)" className="p-1 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] disabled:opacity-40"><ChevronDown size={14} /></button>
             <button onClick={() => setMatchCase((v) => !v)} title="Match Case" className={`px-1.5 py-1 rounded border text-xs font-mono ${activeToggleClass(matchCase)}`}>Aa</button>
             <button onClick={() => setWholeWord((v) => !v)} title="Match Whole Word" className={`px-1.5 py-1 rounded border text-xs font-mono ${activeToggleClass(wholeWord)}`}>Ab|</button>
             <button onClick={() => setUseRegex((v) => !v)} title="Use Regular Expression" className={`px-1.5 py-1 rounded border text-xs font-mono ${activeToggleClass(useRegex)}`}>.*</button>
             <button onClick={() => setShowReplaceRow((v) => !v)} title="Toggle Replace" className={`p-1 rounded border ${activeToggleClass(showReplaceRow)}`}><Replace size={14} /></button>
-            <button onClick={() => { setShowFind(false); clearDecorations(); }} title="Close (Esc)" className="p-1 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]"><X size={14} /></button>
+            <button onClick={() => { setShowFind(false); clearDecorations(); }} title="Close (Esc)" className="p-1 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC]"><X size={14} /></button>
           </div>
           {showReplaceRow && (
             <div className="flex items-center gap-1">
-              <Replace size={14} className="text-[#9e8b7d] shrink-0" />
+              <Replace size={14} className="text-[#B7B1B1] shrink-0" />
               <input value={replaceQuery} onChange={(e) => setReplaceQuery(e.target.value)} onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); replaceAll(); }
                 if (e.key === "Escape") setShowFind(false);
-              }} placeholder="Replace" className="flex-1 min-w-0 px-2 py-1 rounded bg-[#140f0c] border border-[#36281e] text-sm text-[#ece1d8] outline-none focus:border-[#d97706] placeholder:text-[#635245]" />
-              <button onClick={replaceOne} disabled={matchCount === 0} className="text-xs px-2 py-1 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] disabled:opacity-40">Replace</button>
-              <button onClick={replaceAll} disabled={matchCount === 0} className="text-xs px-2 py-1 rounded bg-amber-700 hover:bg-amber-600 text-white disabled:opacity-40">Replace All</button>
+              }} placeholder="Replace" className="flex-1 min-w-0 px-2 py-1 rounded bg-[#141414] border border-[#333333] text-sm text-[#F1ECEC] outline-none focus:border-[#B7B1B1] placeholder:text-[#7c7777]" />
+              <button onClick={replaceOne} disabled={matchCount === 0} className="text-xs px-2 py-1 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] disabled:opacity-40">Replace</button>
+              <button onClick={replaceAll} disabled={matchCount === 0} className="text-xs px-2 py-1 rounded bg-[#4B4646] hover:bg-[#5e5959] text-white disabled:opacity-40">Replace All</button>
             </div>
           )}
           {regexError && <div className="text-xs text-red-400 px-1">{regexError}</div>}
-          <div className="text-[11px] text-[#7c6a5c] px-1">Enter ↵ next · Shift+Enter prev · Ctrl/Cmd+H toggles replace · Replace All supports $1 capture groups in regex mode</div>
+          <div className="text-[11px] text-[#B7B1B1] px-1">Enter ↵ next · Shift+Enter prev · Ctrl/Cmd+H toggles replace · Replace All supports $1 capture groups in regex mode</div>
         </div>
       )}
       {isImg ? (
         <ImageViewer filePath={selectedFile} size={meta?.size} />
       ) : (meta?.binary && !isImg) ? (
-        <div className="p-6 text-sm text-[#9e8b7d]">Binary file — This file cannot be displayed in the editor.</div>
+        <div className="p-6 text-sm text-[#B7B1B1]">Binary file — This file cannot be displayed in the editor.</div>
       ) : meta?.tooLarge ? (
-        <div className="p-6 text-sm text-[#9e8b7d]">Large file — This file is too large to safely display in the editor.</div>
+        <div className="p-6 text-sm text-[#B7B1B1]">Large file — This file is too large to safely display in the editor.</div>
       ) : isMd && mdMode === "preview" ? (
         <MarkdownPreview content={val} filePath={selectedFile} />
       ) : isMd && mdMode === "split" ? (
         <div className="flex-1 flex min-h-0">
-          <div className="flex-1 border-r border-[#36281e] min-w-0">
-            <Editor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} language="markdown" path={selectedFile} value={val}
+          <div className="flex-1 border-r border-[#333333] min-w-0">
+            <Editor height="100%" theme="opencode-dark" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} language="markdown" path={selectedFile} value={val}
               onMount={(edInst, monaco) => {
                 monacoRef.current = monaco;
                 editorRef.current = edInst;
@@ -750,13 +750,13 @@ export default function EditorPanel() {
               onChange={(v) => { ed.setContent(selectedFile, v ?? ""); ed.markDirty(selectedFile, true); }}
               options={{ fontSize: 13, minimap: { enabled: false }, folding: true, matchBrackets: "always", wordWrap: "on", readOnly: false, tabSize: editorTabSize, insertSpaces: editorInsertSpaces }} />
           </div>
-          <div className="flex-1 min-w-0 bg-[#140f0c]">
+          <div className="flex-1 min-w-0 bg-[#141414]">
             <MarkdownPreview content={val} filePath={selectedFile} />
           </div>
         </div>
       ) : (
         mode === "diff" ? (
-          <DiffEditor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} original={base ?? ""} modified={val} language={langOf(selectedFile)} originalModelPath={`inmemory://original/${selectedFile}`} modifiedModelPath={`inmemory://modified/${selectedFile}`}
+          <DiffEditor height="100%" theme="opencode-dark" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} original={base ?? ""} modified={val} language={langOf(selectedFile)} originalModelPath={`inmemory://original/${selectedFile}`} modifiedModelPath={`inmemory://modified/${selectedFile}`}
             onMount={(e) => {
               diffModifiedRef.current = e.getModifiedEditor();
               diffOriginalRef.current = e.getOriginalEditor();
@@ -770,7 +770,7 @@ export default function EditorPanel() {
             }}
             options={{ fontSize: 13, minimap: { enabled: false }, readOnly: false, originalEditable: false, renderSideBySide: true, tabSize: editorTabSize, insertSpaces: editorInsertSpaces, detectIndentation: false } as any} />
         ) : (
-          <Editor height="100%" theme="dark-brown" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} language={langOf(selectedFile)} path={selectedFile} value={val}
+          <Editor height="100%" theme="opencode-dark" beforeMount={(m) => { monacoRef.current = m; handleBeforeMount(m); }} language={langOf(selectedFile)} path={selectedFile} value={val}
             onMount={(edInst, monaco) => {
               monacoRef.current = monaco;
               editorRef.current = edInst;
@@ -783,13 +783,13 @@ export default function EditorPanel() {
         )
       )}
       {ed.conflict && ed.conflict.path === selectedFile && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-[#281d16] border border-amber-500/40 rounded-lg p-4 shadow-xl text-sm text-[#ece1d8]">
-          <div className="font-medium mb-1 text-amber-300">External change detected</div>
-          <div className="text-[#9e8b7d] mb-3">This file was modified outside the editor.</div>
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-[#222222] border border-[#B7B1B1]/40 rounded-lg p-4 shadow-xl text-sm text-[#F1ECEC]">
+          <div className="font-medium mb-1 text-[#F1ECEC]">External change detected</div>
+          <div className="text-[#B7B1B1] mb-3">This file was modified outside the editor.</div>
           <div className="flex gap-2">
-            <button className="px-2 py-1 rounded bg-[#36271c] hover:bg-[#4a3627] text-[#ece1d8]" onClick={() => ed.setMode(selectedFile, "diff")}>Compare</button>
-            <button className="px-2 py-1 rounded bg-[#36271c] hover:bg-[#4a3627] text-[#ece1d8]" onClick={() => { ed.setConflict(null); ed.markDirty(selectedFile, true); }}>Keep Mine</button>
-            <button className="px-2 py-1 rounded bg-amber-700 hover:bg-amber-600 text-white" onClick={() => { ed.setContent(selectedFile, ed.conflict!.diskContent); ed.markDirty(selectedFile, false); ed.setConflict(null); }}>Reload From Disk</button>
+            <button className="px-2 py-1 rounded bg-[#262626] hover:bg-[#333333] text-[#F1ECEC]" onClick={() => ed.setMode(selectedFile, "diff")}>Compare</button>
+            <button className="px-2 py-1 rounded bg-[#262626] hover:bg-[#333333] text-[#F1ECEC]" onClick={() => { ed.setConflict(null); ed.markDirty(selectedFile, true); }}>Keep Mine</button>
+            <button className="px-2 py-1 rounded bg-[#4B4646] hover:bg-[#5e5959] text-white" onClick={() => { ed.setContent(selectedFile, ed.conflict!.diskContent); ed.markDirty(selectedFile, false); ed.setConflict(null); }}>Reload From Disk</button>
           </div>
         </div>
       )}

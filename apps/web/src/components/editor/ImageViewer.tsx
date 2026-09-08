@@ -39,44 +39,44 @@ export default function ImageViewer({ filePath, size }: ImageViewerProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#140f0c] text-[#ece1d8] select-none relative overflow-hidden">
+    <div className="h-full flex flex-col bg-[#141414] text-[#F1ECEC] select-none relative overflow-hidden">
       {/* Top Controls Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[#36281e] bg-[#1a130f] shrink-0 text-xs">
-        <div className="flex items-center gap-2 text-[#9e8b7d] truncate">
-          <ImageIcon size={14} className="text-amber-400 shrink-0" />
-          <span className="font-medium text-[#ece1d8] truncate">{fileName}</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#2e2118] border border-[#36281e] text-amber-300">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[#333333] bg-[#1c1c1c] shrink-0 text-xs">
+        <div className="flex items-center gap-2 text-[#B7B1B1] truncate">
+          <ImageIcon size={14} className="text-[#F1ECEC] shrink-0" />
+          <span className="font-medium text-[#F1ECEC] truncate">{fileName}</span>
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#4B4646] border border-[#B7B1B1]/30 text-[#F1ECEC]">
             {ext}
           </span>
           {naturalSize && (
-            <span className="text-[11px] text-[#8a7667]">
+            <span className="text-[11px] text-[#B7B1B1]">
               {naturalSize.width} × {naturalSize.height} px
             </span>
           )}
-          {size ? <span className="text-[11px] text-[#8a7667]">• {formatBytes(size)}</span> : null}
+          {size ? <span className="text-[11px] text-[#B7B1B1]">• {formatBytes(size)}</span> : null}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={handleZoomOut}
-            className="p-1.5 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] transition-colors"
+            className="p-1.5 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] transition-colors"
             title="Zoom Out"
           >
             <ZoomOut size={13} />
           </button>
-          <span className="px-2 py-0.5 text-xs font-mono min-w-[50px] text-center text-amber-200">
+          <span className="px-2 py-0.5 text-xs font-mono min-w-[50px] text-center text-[#F1ECEC]">
             {Math.round(zoom * 100)}%
           </span>
           <button
             onClick={handleZoomIn}
-            className="p-1.5 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] transition-colors"
+            className="p-1.5 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] transition-colors"
             title="Zoom In"
           >
             <ZoomIn size={13} />
           </button>
           <button
             onClick={handleResetZoom}
-            className="p-1.5 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] transition-colors ml-1"
+            className="p-1.5 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] transition-colors ml-1"
             title="Reset Zoom (100%)"
           >
             <RotateCcw size={13} />
@@ -85,7 +85,7 @@ export default function ImageViewer({ filePath, size }: ImageViewerProps) {
             href={rawUrl}
             target="_blank"
             rel="noreferrer"
-            className="p-1.5 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8] transition-colors ml-1"
+            className="p-1.5 rounded bg-[#262626] border border-[#333333] hover:bg-[#333333] text-[#F1ECEC] transition-colors ml-1"
             title="Open Raw Image in New Tab"
           >
             <ExternalLink size={13} />
@@ -94,21 +94,21 @@ export default function ImageViewer({ filePath, size }: ImageViewerProps) {
       </div>
 
       {/* Main Image Stage */}
-      <div className="flex-1 overflow-auto flex items-center justify-center p-6 bg-[#0d0a08] relative">
+      <div className="flex-1 overflow-auto flex items-center justify-center p-6 bg-[#0e0e0e] relative">
         {/* Checkerboard Pattern for Transparency */}
         <div
           className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
-            backgroundImage: `radial-gradient(#5c4737 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(#4B4646 1px, transparent 1px)`,
             backgroundSize: "16px 16px",
           }}
         />
 
         {error ? (
-          <div className="text-center p-6 bg-[#231a14] border border-[#36281e] rounded-lg max-w-sm">
+          <div className="text-center p-6 bg-[#222222] border border-[#333333] rounded-lg max-w-sm">
             <ImageIcon size={32} className="mx-auto text-red-400 mb-2" />
             <div className="font-semibold text-red-300 text-sm">Failed to load image</div>
-            <div className="text-xs text-[#9e8b7d] mt-1">The image file may be corrupt or inaccessible.</div>
+            <div className="text-xs text-[#B7B1B1] mt-1">The image file may be corrupt or inaccessible.</div>
           </div>
         ) : (
           <div className="relative transition-transform duration-100 ease-out flex items-center justify-center">
@@ -127,7 +127,7 @@ export default function ImageViewer({ filePath, size }: ImageViewerProps) {
                 maxHeight: zoom === 1 ? "80vh" : "none",
                 maxWidth: zoom === 1 ? "100%" : "none",
               }}
-              className="object-contain shadow-2xl rounded border border-[#36281e]/60 transition-transform"
+              className="object-contain shadow-2xl rounded border border-[#333333]/60 transition-transform"
             />
           </div>
         )}

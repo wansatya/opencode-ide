@@ -157,24 +157,24 @@ export default function TerminalPanel() {
     const term = new Terminal({
       fontSize: 12,
       theme: {
-        background: "#140f0c",
-        foreground: "#ece1d8",
-        cursor: "#f59e0b",
-        cursorAccent: "#140f0c",
-        selectionBackground: "#4a3627",
-        black: "#231a14",
+        background: "#141414",
+        foreground: "#F1ECEC",
+        cursor: "#F1ECEC",
+        cursorAccent: "#141414",
+        selectionBackground: "#4B4646",
+        black: "#1c1c1c",
         red: "#ef5350",
         green: "#4caf50",
         yellow: "#f59e0b",
-        blue: "#c87a32",
+        blue: "#8b949e",
         magenta: "#d3709c",
         cyan: "#5eb3a6",
-        white: "#ece1d8",
-        brightBlack: "#5c4b3e",
+        white: "#F1ECEC",
+        brightBlack: "#4B4646",
         brightRed: "#f27370",
         brightGreen: "#66bb6a",
         brightYellow: "#fbbf24",
-        brightBlue: "#e58e26",
+        brightBlue: "#b7b1b1",
         brightMagenta: "#e082b2",
         brightCyan: "#76c7c0",
         brightWhite: "#ffffff",
@@ -356,24 +356,24 @@ export default function TerminalPanel() {
 
   const running = isRunning(state);
   return (
-    <div className="h-full flex flex-col bg-[#140f0c]">
-      <div className="flex items-center gap-2 px-2 h-9 border-b border-[#36281e] bg-[#231a14] text-xs shrink-0">
-        <span className="uppercase tracking-wide text-[#9e8b7d] font-medium">OpenCode</span>
-        <span className="text-[#c2ab99]">{state}{bin ? ` · ${bin.split("/").pop()}` : ""}</span>
+    <div className="h-full flex flex-col bg-[#141414]">
+      <div className="flex items-center gap-2 px-2 h-9 border-b border-[#333333] bg-[#1c1c1c] text-xs shrink-0">
+        <span className="uppercase tracking-wide text-[#B7B1B1] font-medium">OpenCode</span>
+        <span className="text-[#B7B1B1]">{state}{bin ? ` · ${bin.split("/").pop()}` : ""}</span>
         <div className="flex-1 px-2" />
         {running ? (
           <button onClick={stop} className="flex items-center gap-1 px-2 py-1 rounded bg-[#3a1b18] hover:bg-[#4a2424] text-red-200 border border-red-500/30"><Square size={12} />Stop</button>
         ) : (
-          <button onClick={() => start(false)} disabled={state === "starting"} className="flex items-center gap-1 px-2 py-1 rounded bg-[#1b3a20] hover:bg-[#244a2b] text-emerald-200 border border-emerald-500/30 disabled:opacity-50"><Play size={12} />{state === "starting" ? "Starting…" : "Start"}</button>
+          <button onClick={() => start(false)} disabled={state === "starting"} className="flex items-center gap-1 px-2 py-1 rounded bg-[#4B4646] hover:bg-[#5e5959] text-white border border-[#B7B1B1]/30 disabled:opacity-50"><Play size={12} />{state === "starting" ? "Starting…" : "Start"}</button>
         )}
       </div>
       {state === "error" && error && (
         <div className="px-2 py-1.5 text-xs bg-[#3a1b18] border-b border-red-500/40 text-red-200 shrink-0">{error}</div>
       )}
       {found === false && state !== "starting" && (
-        <div className="px-2 py-1.5 text-xs bg-[#382b1c] border-b border-amber-500/40 text-amber-200 shrink-0">{INSTALL_MSG}</div>
+        <div className="px-2 py-1.5 text-xs bg-[#222222] border-b border-[#333333] text-[#F1ECEC] shrink-0">{INSTALL_MSG}</div>
       )}
-      <div className="flex-1 min-h-0 bg-[#140f0c] p-0 overflow-hidden relative">
+      <div className="flex-1 min-h-0 bg-[#141414] p-0 overflow-hidden relative">
         <div ref={ref} className="h-full w-full" />
         {state === "starting" && <StartupVisualization bin={bin} />}
       </div>
