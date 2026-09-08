@@ -43,6 +43,14 @@ print_banner() {
   local DIM="\033[38;5;245m"
   local RESET="\033[0m"
 
+  local pad1="           "
+  local pad2="          "
+  if [ "$PLATFORM" = "Windows" ]; then
+    pad1="          "
+    pad2="         "
+  fi
+
+  echo ""
   echo -e "${W}  ██████   ██████  ███████ ███    ██  ██████  ██████  ██████  ███████   ██████  ██████  ███████${RESET}"
   echo -e "${W} ██    ██  ██   ██ ██      ████   ██ ██      ██    ██ ██   ██ ██          ██    ██   ██ ██     ${RESET}"
   echo -e "${W} ██    ██  ██████  █████   ██ ██  ██ ██      ██    ██ ██   ██ █████       ██    ██   ██ █████  ${RESET}"
@@ -52,7 +60,7 @@ print_banner() {
   echo -e " ${W}Next-Gen Web IDE & Developer Control Center${RESET}"
   echo ""
   echo -e " ${G}┌── RECOMMENDED ──────────────────────────────────────────────────────────────┐${RESET}"
-  echo -e " ${G}│${RESET} \033[1;32m>\033[0m ${W}cockpit start .${RESET}       \033[38;5;248mNext-Gen Web IDE (${PLATFORM})\033[0m   \033[1;32mPress Enter ↵${RESET}   ${G}│${RESET}"
+  echo -e " ${G}│${RESET} \033[1;32m>\033[0m ${W}cockpit start .${RESET}${pad1}\033[38;5;248mNext-Gen Web IDE (${PLATFORM})\033[0m${pad2}\033[1;32mPress Enter ↵${RESET} ${G}│${RESET}"
   echo -e " ${G}└─────────────────────────────────────────────────────────────────────────────┘${RESET}"
   echo ""
   echo -e " ${DIM}↓ See all commands: cockpit start [path] [--prod] [--no-branch]${RESET}"

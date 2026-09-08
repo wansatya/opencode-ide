@@ -11,6 +11,7 @@ param (
 
 $ErrorActionPreference = "Stop"
 
+Write-Host ""
 Write-Host "  ██████   ██████  ███████ ███    ██  ██████  ██████  ██████  ███████   ██████  ██████  ███████" -ForegroundColor White
 Write-Host " ██    ██  ██   ██ ██      ████   ██ ██      ██    ██ ██   ██ ██          ██    ██   ██ ██     " -ForegroundColor White
 Write-Host " ██    ██  ██████  █████   ██ ██  ██ ██      ██    ██ ██   ██ █████       ██    ██   ██ █████  " -ForegroundColor White
@@ -20,7 +21,7 @@ Write-Host ""
 Write-Host " Next-Gen Web IDE & Developer Control Center" -ForegroundColor White
 Write-Host ""
 Write-Host " ┌── RECOMMENDED ──────────────────────────────────────────────────────────────┐" -ForegroundColor Green
-Write-Host " │ > cockpit start .       Next-Gen Web IDE (Windows)   Press Enter ↵   │" -ForegroundColor Green
+Write-Host " │ > cockpit start .          Next-Gen Web IDE (Windows)         Press Enter ↵ │" -ForegroundColor Green
 Write-Host " └─────────────────────────────────────────────────────────────────────────────┘" -ForegroundColor Green
 Write-Host ""
 Write-Host " ↓ See all commands: cockpit start [path] [--prod] [--no-branch]" -ForegroundColor Gray
