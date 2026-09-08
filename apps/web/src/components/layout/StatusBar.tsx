@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useGit } from "../../stores/git";
 import { useTerm } from "../../stores/terminal";
 import { useRepo } from "../../stores/repository";
 import { api } from "../../lib/api";
-import { GitMerge, Loader2, Check, AlertTriangle, Trash2 } from "lucide-react";
+import { GitMerge, Loader2, Check, AlertTriangle, Trash2, Zap } from "lucide-react";
+
+type QuotaProvider = { status: string; percentRemaining?: number; label?: string; [k: string]: unknown };
+type QuotaData = { providers: Record<string, QuotaProvider> };
 
 export default function StatusBar() {
   const { files, branch, isRepo, refresh } = useGit();
@@ -17,6 +20,51 @@ export default function StatusBar() {
   const [merging, setMerging] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loadingBranches, setLoadingBranches] = useState(false);
+
+  // ---- quota state ----------------------------------------------------------
+  const [quota, setQuota] = useState<QuotaData | null>(null);
+  const [quotaLoading, setQuotaLoading] = useState(false);
+
+  const fetchQuota = useCallback(async () => {
+    setQuotaLoading(true);
+    try {
+      const data = await api.ocQuota();
+      setQuota(data);
+    } catch {
+      // silently ignore – quota display is best-effort
+    } finally {
+      setQuotaLoading(false);
+    }
+  }, []);
+
+  // Fetch quota on mount and every 60s while terminal is active
+  useEffect(() => {
+    void fetchQuota();
+    const iv = setInterval(() => void fetchQuota(), 60_000);
+    return () => clearInterval(iv);
+  }, [fetchQuota]);
+
+  // Re-fetch when terminal state changes to connected/working
+  useEffect(() => {
+    if (state === "connected" || state === "working") void fetchQuota();
+  }, [state, fetchQuota]);
+
+  // Derive available providers with quota info
+  const activeProviders = quota
+    ? Object.entries(quota.providers)
+        .filter(([, v]) => v.status !== "unavailable" && v.status !== "error")
+        .map(([id, v]) => ({ id, ...v }))
+    : [];
+
+  const quotaColor = (pct: number | undefined) => {
+    if (pct === undefined) return "#9e8b7d";
+    if (pct > 50) return "#22c55e"; // green
+    if (pct > 20) return "#f59e0b"; // amber
+    return "#ef4444"; // red
+  };
+
+  const formatProviderName = (id: string) =>
+    id.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   const fetchBranches = async () => {
     if (!isRepo) {
@@ -99,6 +147,45 @@ export default function StatusBar() {
   const canMerge = isRepo && !!selected && !merging && !loadingBranches;
   const noOtherBranches = isRepo && !loadingBranches && branches.length === 0;
 
+  // ---- quota display element ------------------------------------------------
+  const renderQuota = () => {
+    if (quotaLoading && !quota) {
+      return (
+        <span className="whitespace-nowrap hidden sm:inline-flex items-center gap-1 text-[#9e8b7d]">
+          <Loader2 size={11} className="animate-spin" />
+          <span>quota…</span>
+        </span>
+      );
+    }
+
+    if (activeProviders.length > 0) {
+      return (
+        <span className="whitespace-nowrap hidden sm:inline-flex items-center gap-2">
+          {activeProviders.map((p) => (
+            <span
+              key={p.id}
+              className="inline-flex items-center gap-1"
+              title={`${formatProviderName(p.id)}: ${p.percentRemaining !== undefined ? `${p.percentRemaining}% remaining` : p.status}`}
+            >
+              <Zap size={10} style={{ color: quotaColor(p.percentRemaining) }} />
+              <span style={{ color: quotaColor(p.percentRemaining) }}>
+                {p.percentRemaining !== undefined ? `${p.percentRemaining}%` : p.status}
+              </span>
+              <span className="text-[#5c4737] hidden lg:inline">{formatProviderName(p.id)}</span>
+            </span>
+          ))}
+        </span>
+      );
+    }
+
+    // Fallback: show terminal state
+    return (
+      <span className="whitespace-nowrap hidden sm:inline">
+        {state === "connected" || state === "working" ? "ready" : state}
+      </span>
+    );
+  };
+
   return (
     <div className="h-8 flex items-center gap-3 px-3 text-xs text-[#9e8b7d] border-t border-[#36281e] bg-[#231a14] shrink-0">
       <span className="whitespace-nowrap hidden sm:inline">
@@ -177,7 +264,7 @@ export default function StatusBar() {
       )}
 
       <div className="flex-1" />
-      <span className="whitespace-nowrap hidden sm:inline">{state === "connected" || state === "working" ? "process running" : state}</span>
+      {renderQuota()}
       <span className="sm:hidden whitespace-nowrap">{state.slice(0, 4)}</span>
     </div>
   );

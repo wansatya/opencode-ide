@@ -34,5 +34,6 @@ export const api = {
   createFile: (p: string, content?: string) => fetch("/api/fs/file", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p, content: content ?? "" }) }).then(j<{ path: string; hash: string }>) ,
   createDirectory: (p: string) => fetch("/api/fs/directory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) }).then(j<{ path: string }>) ,
   deletePath: (p: string) => fetch("/api/fs?path=" + encodeURIComponent(p), { method: "DELETE" }).then(j<{ path: string; type: string }>) ,
+  ocQuota: () => fetch("/api/opencode/quota").then(j<{ version: number; exportedAt: number; fromCache: boolean; cacheAgeSeconds: number; providers: Record<string, { status: string; percentRemaining?: number; label?: string; [k: string]: unknown }> }>),
 };
 export function wsUrl(p: string) { const proto = location.protocol === "https:" ? "wss:" : "ws:"; return proto + "//" + location.host + p; }

@@ -396,6 +396,23 @@ app.post("/api/opencode/stop", (_req, res) => {
   res.json({ ok: true });
 });
 
+// ---- opencode-quota ---------------------------------------------------------
+app.get("/api/opencode/quota", async (_req, res) => {
+  try {
+    const { execFile: execFileCb } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execFileP = promisify(execFileCb);
+    const { stdout } = await execFileP("npx", ["@slkiser/opencode-quota", "show", "--json"], {
+      timeout: 15000,
+      env: { ...process.env, npm_config_yes: "true" },
+    });
+    const data = JSON.parse(stdout);
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message ?? "Failed to fetch quota" });
+  }
+});
+
 // static web
 const webDist = path.resolve(process.cwd(), "../web/dist");
 fs.stat(webDist).then(() => { app.use(express.static(webDist)); }).catch(() => {});
