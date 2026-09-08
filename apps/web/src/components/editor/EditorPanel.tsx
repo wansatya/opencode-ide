@@ -575,7 +575,14 @@ export default function EditorPanel() {
     setTabMenu(null);
   }, []);
 
-  if (!selectedFile) return <div className="h-full flex items-center justify-center text-sm text-[#9e8b7d] bg-[#140f0c]">Select a file from the repository.</div>;
+  if (!selectedFile) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4 text-sm text-[#9e8b7d] bg-[#140f0c]">
+        <img src="/logo.svg" alt="OpenCode Logo" className="h-9 opacity-70 select-none" />
+        <span>Select a file from the repository.</span>
+      </div>
+    );
+  }
   const gitSt = statusMap[selectedFile]?.status;
   const activeToggleClass = (on: boolean) => on ? "bg-amber-700 text-white border-amber-600" : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8] hover:bg-[#4a3627]";
   return (
