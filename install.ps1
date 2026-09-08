@@ -28,54 +28,97 @@ Write-Host " ↓ See all commands: cockpit start [path] [--prod] [--no-branch]" 
 Write-Host " ✦ Includes Monaco Editor, Real-Time Git Cockpit & Session Auto-Branching" -ForegroundColor Gray
 Write-Host ""
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Host "Error: Git is required. Install Git from https://git-scm.com" -ForegroundColor Red
-    exit 1
+$logFile = Join-Path $env:TEMP "opencode-install.log"
+"=== OpenCode IDE Installation Log $(Get-Date) ===" | Out-File -FilePath $logFile -Encoding utf8
+
+function Invoke-InstallStep {
+    param (
+        [int]$StepNum,
+        [int]$TotalSteps,
+        [string]$Title,
+        [scriptblock]$Action
+    )
+    $startTime = Get-Date
+    Write-Host -NoNewline " "
+    Write-Host "✦" -ForegroundColor Green -NoNewline
+    Write-Host " [$StepNum/$TotalSteps] " -ForegroundColor White -NoNewline
+    Write-Host "$Title..." -ForegroundColor White -NoNewline
+
+    try {
+        & $Action *>> $logFile
+        $duration = [math]::Round(((Get-Date) - $startTime).TotalSeconds)
+        Write-Host "`r " -NoNewline
+        Write-Host "✔" -ForegroundColor Green -NoNewline
+        Write-Host " [$StepNum/$TotalSteps] " -ForegroundColor White -NoNewline
+        Write-Host "$Title " -ForegroundColor White -NoNewline
+        Write-Host "(${duration}s)" -ForegroundColor Gray
+    }
+    catch {
+        Write-Host "`r " -NoNewline
+        Write-Host "✖" -ForegroundColor Red -NoNewline
+        Write-Host " [$StepNum/$TotalSteps] " -ForegroundColor White -NoNewline
+        Write-Host "$Title " -ForegroundColor Red -NoNewline
+        Write-Host "FAILED" -ForegroundColor Red
+        Write-Host "`nInstallation failed at step ${StepNum}: $Title" -ForegroundColor Red
+        Write-Host "Log tail ($logFile):" -ForegroundColor Gray
+        Get-Content $logFile -Tail 25
+        exit 1
+    }
 }
 
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "Error: Node.js 20+ is required. Install Node.js from https://nodejs.org" -ForegroundColor Red
-    exit 1
+$totalSteps = if ($NoBuild) { 4 } else { 5 }
+
+Invoke-InstallStep 1 $totalSteps "Checking system environment" {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        throw "Git is required. Install Git from https://git-scm.com"
+    }
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+        throw "Node.js 20+ is required. Install Node.js from https://nodejs.org"
+    }
+    $nodeMajor = node -p 'process.versions.node.split(".")[0]'
+    if ([int]$nodeMajor -lt 20) {
+        throw "Node.js 20+ is required (found Node $(node -v)). Please upgrade at https://nodejs.org"
+    }
 }
 
-$nodeMajor = node -p 'process.versions.node.split(".")[0]'
-if ([int]$nodeMajor -lt 20) {
-    Write-Host "Error: Node.js 20+ is required (found Node $(node -v)). Please upgrade at https://nodejs.org" -ForegroundColor Red
-    exit 1
+Invoke-InstallStep 2 $totalSteps "Cloning repository into $InstallDir" {
+    if (Test-Path $InstallDir) {
+        Remove-Item -Recurse -Force $InstallDir
+    }
+    git clone --depth 1 $RepoUrl $InstallDir
 }
 
-if (Test-Path $InstallDir) {
-    Write-Host "Removing previous installation at $InstallDir..." -ForegroundColor Yellow
-    Remove-Item -Recurse -Force $InstallDir
+Invoke-InstallStep 3 $totalSteps "Installing workspace dependencies" {
+    Set-Location $InstallDir
+    npm install
 }
 
-Write-Host "Cloning $RepoUrl -> $InstallDir..." -ForegroundColor Green
-git clone --depth 1 $RepoUrl $InstallDir
-
-Write-Host "Installing dependencies..." -ForegroundColor Green
-Set-Location $InstallDir
-npm install
-
+$stepIdx = 4
 if (-not $NoBuild) {
-    Write-Host "Building OpenCode IDE web & bridge apps..." -ForegroundColor Green
-    npm run build
+    Invoke-InstallStep 4 $totalSteps "Building production web & bridge apps" {
+        Set-Location $InstallDir
+        npm run build
+    }
+    $stepIdx = 5
 }
 
-if (-not (Test-Path $BinDir)) {
-    New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
+Invoke-InstallStep $stepIdx $totalSteps "Configuring launcher binaries in $BinDir" {
+    if (-not (Test-Path $BinDir)) {
+        New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
+    }
+    $cmdPath = Join-Path $BinDir "cockpit.cmd"
+    Set-Content -Path $cmdPath -Value "@echo off`r`nbash `"%~dp0cockpit`" %*" -Encoding ASCII
+
+    $psPath = Join-Path $BinDir "cockpit.ps1"
+    Set-Content -Path $psPath -Value "& bash `"`$PSScriptRoot/cockpit`" `$args" -Encoding ASCII
+
+    $bashLauncher = Join-Path $BinDir "cockpit"
+    Copy-Item -Force (Join-Path $InstallDir "bin\cockpit") $bashLauncher
 }
-
-# Create Windows Launcher wrappers for CMD, PowerShell & Bash
-$cmdPath = Join-Path $BinDir "cockpit.cmd"
-Set-Content -Path $cmdPath -Value "@echo off`r`nbash `"%~dp0cockpit`" %*" -Encoding ASCII
-
-$psPath = Join-Path $BinDir "cockpit.ps1"
-Set-Content -Path $psPath -Value "& bash `"`$PSScriptRoot/cockpit`" `$args" -Encoding ASCII
-
-$bashLauncher = Join-Path $BinDir "cockpit"
-Copy-Item -Force (Join-Path $InstallDir "bin\cockpit") $bashLauncher
 
 Write-Host ""
-Write-Host "Done! OpenCode IDE has been installed." -ForegroundColor Green
+Write-Host "Done! OpenCode IDE has been successfully installed." -ForegroundColor Green
+Write-Host ""
 Write-Host "Start OpenCode IDE:" -ForegroundColor Yellow
-Write-Host "  cockpit start C:\projects\my-app" -ForegroundColor Cyan
+Write-Host "  cockpit start C:\projects\my-app" -ForegroundColor Green
+Write-Host ""

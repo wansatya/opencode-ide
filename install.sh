@@ -95,7 +95,61 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-print_banner
+LOG_FILE="${TMPDIR:-/tmp}/opencode-install.log"
+rm -f "$LOG_FILE"
+echo "=== OpenCode IDE Installation Log $(date) ===" > "$LOG_FILE"
+
+run_step() {
+  local step_num="$1"
+  local total_steps="$2"
+  local title="$3"
+  shift 3
+
+  local start_time=$(date +%s)
+
+  if [ -t 1 ]; then
+    local spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local spin_i=0
+
+    ("$@") >> "$LOG_FILE" 2>&1 &
+    local pid=$!
+
+    while kill -0 $pid 2>/dev/null; do
+      local spin_char="${spinner[$spin_i]}"
+      spin_i=$(( (spin_i + 1) % ${#spinner[@]} ))
+      printf "\r \033[38;5;118m%s\033[0m \033[1m[%s/%s]\033[0m %s..." "$spin_char" "$step_num" "$total_steps" "$title"
+      sleep 0.08
+    done
+
+    wait $pid
+    local exit_code=$?
+    local duration=$(( $(date +%s) - start_time ))
+
+    if [ $exit_code -eq 0 ]; then
+      printf "\r \033[38;5;118m✔\033[0m \033[1m[%s/%s]\033[0m %s \033[38;5;245m(%ss)\033[0m\033[K\n" "$step_num" "$total_steps" "$title" "$duration"
+    else
+      printf "\r \033[31m✖\033[0m \033[1m[%s/%s]\033[0m %s \033[31mFAILED\033[0m\033[K\n" "$step_num" "$total_steps" "$title"
+      echo ""
+      echo -e "\033[1;31mInstallation failed at step $step_num: $title\033[0m"
+      echo -e "\033[38;5;245mLog tail ($LOG_FILE):\033[0m"
+      echo "--------------------------------------------------------------------------------"
+      tail -n 30 "$LOG_FILE"
+      echo "--------------------------------------------------------------------------------"
+      exit 1
+    fi
+  else
+    printf " \033[38;5;118m✦\033[0m \033[1m[%s/%s]\033[0m %s..." "$step_num" "$total_steps" "$title"
+    if ("$@") >> "$LOG_FILE" 2>&1; then
+      local duration=$(( $(date +%s) - start_time ))
+      printf " \033[38;5;245m(%ss)\033[0m\n" "$duration"
+    else
+      printf " \033[31mFAILED\033[0m\n"
+      echo -e "\033[1;31mInstallation failed at step $step_num: $title\033[0m"
+      tail -n 30 "$LOG_FILE"
+      exit 1
+    fi
+  fi
+}
 
 need() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -118,68 +172,81 @@ need() {
   }
 }
 
-need git
-need node
-need npm
+step_check_env() {
+  need git
+  need node
+  need npm
+  NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo "0")"
+  if [ "$NODE_MAJOR" -lt 20 ]; then
+    echo "Node.js 20+ is required (found Node $(node -v)). Please upgrade from https://nodejs.org" >&2
+    exit 1
+  fi
+}
 
-# Enforce Node >= 20
-NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo "0")"
-if [ "$NODE_MAJOR" -lt 20 ]; then
-  echo "Node.js 20+ is required (found Node $(node -v)). Please upgrade from https://nodejs.org" >&2
-  exit 1
-fi
+step_clone_repo() {
+  if [ -e "$INSTALL_DIR" ]; then
+    rm -rf "$INSTALL_DIR"
+  fi
+  git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
+}
 
-if [ -e "$INSTALL_DIR" ]; then
-  echo "Removing previous installation at $INSTALL_DIR…"
-  rm -rf "$INSTALL_DIR"
-fi
+step_install_deps() {
+  cd "$INSTALL_DIR" && npm install
+}
 
-echo "Cloning $REPO_URL → $INSTALL_DIR…"
-git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
+step_build_app() {
+  cd "$INSTALL_DIR" && npm run build
+}
 
-echo "Installing workspace dependencies…"
-(cd "$INSTALL_DIR" && npm install)
+step_setup_launcher() {
+  if [ ! -f "$INSTALL_DIR/bin/cockpit" ]; then
+    echo "Error: Launcher file $INSTALL_DIR/bin/cockpit was not found." >&2
+    exit 1
+  fi
+  mkdir -p "$BIN_DIR"
+  chmod +x "$INSTALL_DIR/bin/cockpit" "$INSTALL_DIR/install.sh"
+  if ln -sf "$INSTALL_DIR/bin/cockpit" "$BIN_DIR/cockpit" 2>/dev/null; then
+    :
+  else
+    cp -f "$INSTALL_DIR/bin/cockpit" "$BIN_DIR/cockpit"
+    chmod +x "$BIN_DIR/cockpit"
+  fi
 
-if [ ! -f "$INSTALL_DIR/bin/cockpit" ]; then
-  echo "Error: Launcher file $INSTALL_DIR/bin/cockpit was not found." >&2
-  exit 1
-fi
-
-if [ "$WITH_BUILD" -eq 1 ]; then
-  echo "Building OpenCode IDE web & bridge apps…"
-  (cd "$INSTALL_DIR" && npm run build)
-fi
-
-mkdir -p "$BIN_DIR"
-chmod +x "$INSTALL_DIR/bin/cockpit" "$INSTALL_DIR/install.sh"
-
-# Link or copy executable launcher
-if ln -sf "$INSTALL_DIR/bin/cockpit" "$BIN_DIR/cockpit" 2>/dev/null; then
-  echo "Linked launcher: $INSTALL_DIR/bin/cockpit → $BIN_DIR/cockpit"
-else
-  cp -f "$INSTALL_DIR/bin/cockpit" "$BIN_DIR/cockpit"
-  chmod +x "$BIN_DIR/cockpit"
-  echo "Copied launcher: $BIN_DIR/cockpit"
-fi
-
-# On Windows environments, generate CMD and PowerShell launcher wrappers
-if [ "$PLATFORM" = "Windows" ] || [ -n "${WINDIR:-}" ] || [ -n "${SYSTEMROOT:-}" ]; then
-  cat <<'CMDWRAPPER' > "$BIN_DIR/cockpit.cmd"
+  if [ "$PLATFORM" = "Windows" ] || [ -n "${WINDIR:-}" ] || [ -n "${SYSTEMROOT:-}" ]; then
+    cat <<'CMDWRAPPER' > "$BIN_DIR/cockpit.cmd"
 @echo off
 bash "%~dp0cockpit" %*
 CMDWRAPPER
-  chmod +x "$BIN_DIR/cockpit.cmd" 2>/dev/null || true
+    chmod +x "$BIN_DIR/cockpit.cmd" 2>/dev/null || true
 
-  cat <<'PSWRAPPER' > "$BIN_DIR/cockpit.ps1"
+    cat <<'PSWRAPPER' > "$BIN_DIR/cockpit.ps1"
 & bash "$PSScriptRoot/cockpit" $args
 PSWRAPPER
-  chmod +x "$BIN_DIR/cockpit.ps1" 2>/dev/null || true
+    chmod +x "$BIN_DIR/cockpit.ps1" 2>/dev/null || true
+  fi
+}
 
-  echo "Created Windows CMD (cockpit.cmd) and PowerShell (cockpit.ps1) wrappers in $BIN_DIR"
+TOTAL_STEPS=5
+if [ "$WITH_BUILD" -eq 0 ]; then
+  TOTAL_STEPS=4
 fi
 
+print_banner
+
+run_step 1 "$TOTAL_STEPS" "Checking system environment" step_check_env
+run_step 2 "$TOTAL_STEPS" "Cloning repository into $INSTALL_DIR" step_clone_repo
+run_step 3 "$TOTAL_STEPS" "Installing workspace dependencies" step_install_deps
+
+STEP_INDEX=4
+if [ "$WITH_BUILD" -eq 1 ]; then
+  run_step 4 "$TOTAL_STEPS" "Building production web & bridge apps" step_build_app
+  STEP_INDEX=5
+fi
+
+run_step "$STEP_INDEX" "$TOTAL_STEPS" "Configuring launcher binary in $BIN_DIR" step_setup_launcher
+
 echo ""
-echo "Done! OpenCode IDE has been installed."
+echo -e "\033[38;5;118mDone! OpenCode IDE has been successfully installed.\033[0m"
 echo ""
 
 if ! echo ":$PATH:" | grep -q ":$BIN_DIR:"; then
@@ -203,7 +270,7 @@ if ! echo ":$PATH:" | grep -q ":$BIN_DIR:"; then
 fi
 
 echo "Start OpenCode IDE:"
-echo "  cockpit start ~/projects/my-app"
+echo -e "  \033[1;32mcockpit start ~/projects/my-app\033[0m"
 
 # Print raw curl link for easy sharing
 RAW_URL="$(echo "$REPO_URL" | sed -E 's#^https://github\\.com/([^/]+)/([^/]+?)(\\.git)?$#https://raw.githubusercontent.com/\\1/\\2/main/install.sh#')"
