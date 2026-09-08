@@ -11,9 +11,21 @@ param (
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  Installing OpenCode IDE (Windows)" -ForegroundColor Cyan
-Write-Host "==========================================" -ForegroundColor Cyan
+Write-Host "  ██████   ██████  ███████ ███    ██  ██████  ██████  ██████  ███████   ██████  ██████  ███████" -ForegroundColor White
+Write-Host " ██    ██  ██   ██ ██      ████   ██ ██      ██    ██ ██   ██ ██          ██    ██   ██ ██     " -ForegroundColor White
+Write-Host " ██    ██  ██████  █████   ██ ██  ██ ██      ██    ██ ██   ██ █████       ██    ██   ██ █████  " -ForegroundColor White
+Write-Host " ██    ██  ██      ██      ██  ██ ██ ██      ██    ██ ██   ██ ██          ██    ██   ██ ██     " -ForegroundColor White
+Write-Host "  ██████   ██      ███████ ██   ████  ██████  ██████  ██████  ███████   ██████  ██████  ███████" -ForegroundColor White
+Write-Host ""
+Write-Host " Next-Gen Web IDE & Developer Control Center" -ForegroundColor White
+Write-Host ""
+Write-Host " ┌── RECOMMENDED ──────────────────────────────────────────────────────────────┐" -ForegroundColor Green
+Write-Host " │ > cockpit start .       Next-Gen Web IDE (Windows)   Press Enter ↵   │" -ForegroundColor Green
+Write-Host " └─────────────────────────────────────────────────────────────────────────────┘" -ForegroundColor Green
+Write-Host ""
+Write-Host " ↓ See all commands: cockpit start [path] [--prod] [--no-branch]" -ForegroundColor Gray
+Write-Host " ✦ Includes Monaco Editor, Real-Time Git Cockpit & Session Auto-Branching" -ForegroundColor Gray
+Write-Host ""
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Error: Git is required. Install Git from https://git-scm.com" -ForegroundColor Red

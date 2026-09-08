@@ -37,10 +37,33 @@ INSTALL_DIR="${COCKPIT_DIR:-$DEFAULT_INSTALL_DIR}"
 BIN_DIR="${COCKPIT_BIN_DIR:-$DEFAULT_BIN_DIR}"
 WITH_BUILD=1
 
-usage() {
-  cat <<EOF
-OpenCode IDE Cross-Platform Installer ($PLATFORM)
+print_banner() {
+  local G="\033[38;5;118m"
+  local W="\033[1;97m"
+  local DIM="\033[38;5;245m"
+  local RESET="\033[0m"
 
+  echo -e "${W}  ██████   ██████  ███████ ███    ██  ██████  ██████  ██████  ███████   ██████  ██████  ███████${RESET}"
+  echo -e "${W} ██    ██  ██   ██ ██      ████   ██ ██      ██    ██ ██   ██ ██          ██    ██   ██ ██     ${RESET}"
+  echo -e "${W} ██    ██  ██████  █████   ██ ██  ██ ██      ██    ██ ██   ██ █████       ██    ██   ██ █████  ${RESET}"
+  echo -e "${W} ██    ██  ██      ██      ██  ██ ██ ██      ██    ██ ██   ██ ██          ██    ██   ██ ██     ${RESET}"
+  echo -e "${W}  ██████   ██      ███████ ██   ████  ██████  ██████  ██████  ███████   ██████  ██████  ███████${RESET}"
+  echo ""
+  echo -e " ${W}Next-Gen Web IDE & Developer Control Center${RESET}"
+  echo ""
+  echo -e " ${G}┌── RECOMMENDED ──────────────────────────────────────────────────────────────┐${RESET}"
+  echo -e " ${G}│${RESET} \033[1;32m>\033[0m ${W}cockpit start .${RESET}       \033[38;5;248mNext-Gen Web IDE (${PLATFORM})\033[0m   \033[1;32mPress Enter ↵${RESET}   ${G}│${RESET}"
+  echo -e " ${G}└─────────────────────────────────────────────────────────────────────────────┘${RESET}"
+  echo ""
+  echo -e " ${DIM}↓ See all commands: cockpit start [path] [--prod] [--no-branch]${RESET}"
+  echo ""
+  echo -e " ${DIM}✦ Includes Monaco Editor, Real-Time Git Cockpit & Session Auto-Branching${RESET}"
+  echo ""
+}
+
+usage() {
+  print_banner
+  cat <<EOF
 Usage:
   install.sh [--repo URL] [--dir PATH] [--bin-dir PATH] [--no-build]
 
@@ -64,9 +87,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-echo "=========================================="
-echo "  Installing OpenCode IDE ($PLATFORM)"
-echo "=========================================="
+print_banner
 
 need() {
   command -v "$1" >/dev/null 2>&1 || {
