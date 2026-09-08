@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Loader2, ChevronDown, ChevronRight, FileText, AlertCircle, X } from "lucide-react";
+import { Search, Loader2, ChevronDown, ChevronRight, FileText, AlertCircle, X, CopyMinus, CopyPlus } from "lucide-react";
 import { useSearch, SearchFileGroup, SearchMatchItem } from "../../stores/search";
 import { getFileIcon } from "../repository/fileIcons";
 
@@ -21,8 +21,8 @@ function HighlightText({ text, query, matchCase, useRegex }: { text: string; que
       const isMatch = useRegex
         ? re.test(part)
         : matchCase
-        ? part === query
-        : part.toLowerCase() === query.toLowerCase();
+          ? part === query
+          : part.toLowerCase() === query.toLowerCase();
       return { text: part, isMatch };
     });
   } catch {
@@ -67,6 +67,18 @@ export default function SearchPanel() {
 
   const toggleCollapse = (filePath: string) => {
     setCollapsedFiles((prev) => ({ ...prev, [filePath]: !prev[filePath] }));
+  };
+
+  const isAllCollapsed = results.length > 0 && results.every((f) => !!collapsedFiles[f.path]);
+
+  const toggleExpandCollapseAll = () => {
+    if (isAllCollapsed) {
+      setCollapsedFiles({});
+    } else {
+      const next: Record<string, boolean> = {};
+      for (const f of results) next[f.path] = true;
+      setCollapsedFiles(next);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -114,11 +126,10 @@ export default function SearchPanel() {
                 executeSearch();
               }}
               title="Match Case (Aa)"
-              className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${
-                matchCase
-                  ? "bg-amber-700 text-white border-amber-600 font-bold"
-                  : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8]"
-              }`}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${matchCase
+                ? "bg-amber-700 text-white border-amber-600 font-bold"
+                : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8]"
+                }`}
             >
               Aa
             </button>
@@ -128,11 +139,10 @@ export default function SearchPanel() {
                 executeSearch();
               }}
               title="Use Regular Expression (.*)"
-              className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${
-                useRegex
-                  ? "bg-amber-700 text-white border-amber-600 font-bold"
-                  : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8]"
-              }`}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${useRegex
+                ? "bg-amber-700 text-white border-amber-600 font-bold"
+                : "bg-[#2e2118] text-[#9e8b7d] border-[#36281e] hover:text-[#ece1d8]"
+                }`}
             >
               .*
             </button>
@@ -141,13 +151,24 @@ export default function SearchPanel() {
 
         {/* Summary info */}
         {query && !isSearching && (
-          <div className="text-[11px] text-[#9e8b7d] flex items-center justify-between">
+          <div className="text-[11px] text-[#9e8b7d] flex items-center justify-between pt-0.5">
             <span>
               {totalMatches > 0
                 ? `${totalMatches} match${totalMatches > 1 ? "es" : ""} in ${filesCount} file${filesCount > 1 ? "s" : ""}`
                 : "No matches found"}
             </span>
-            {truncated && <span className="text-amber-400/90 font-medium">Cap (500) reached</span>}
+            <div className="flex items-center gap-1.5">
+              {truncated && <span className="text-amber-400/90 font-medium">Cap (500) reached</span>}
+              {totalMatches > 0 && (
+                <button
+                  onClick={toggleExpandCollapseAll}
+                  className="px-1.5 py-0.5 text-[#c2ab99] hover:text-[#ece1d8] transition-colors flex items-center gap-1 text-[10px]"
+                  title={isAllCollapsed ? "Expand all file groups" : "Collapse all file groups"}
+                >
+                  {isAllCollapsed ? <CopyPlus size={12} /> : <CopyMinus size={12} />}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
