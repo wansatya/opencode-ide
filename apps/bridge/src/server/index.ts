@@ -6,7 +6,7 @@ import { createServer } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import Ignore from "ignore";
 import { getWorkspaceRoot, setWorkspaceRoot } from "./workspace.js";
-import { buildTree, readFileSafe, writeFileSafe, createFileSafe, createDirectorySafe, deletePathSafe, resolveSafe } from "../filesystem/FileService.js";
+import { buildTree, readFileSafe, writeFileSafe, createFileSafe, createDirectorySafe, deletePathSafe, resolveSafe, searchWorkspace, createGitignoreMatcher } from "../filesystem/FileService.js";
 import { gitService } from "../git/GitService.js";
 import { watcherService } from "../watcher/WatcherService.js";
 import { openCodeService } from "../opencode/OpenCodeService.js";
@@ -27,6 +27,26 @@ app.get("/api/workspace", (_req, res) => {
   const root = getWorkspaceRoot();
   res.json({ root, name: root ? path.basename(root) : null });
 });
+
+app.get("/api/search", async (req, res) => {
+  const root = requireRoot(res); if (!root) return;
+  const q = String(req.query.q ?? "");
+  const matchCase = req.query.case === "1" || req.query.case === "true";
+  const useRegex = req.query.regex === "1" || req.query.regex === "true";
+  const maxResults = req.query.maxResults ? Number(req.query.maxResults) : 500;
+  try {
+    const result = await searchWorkspace(root, q, {
+      matchCase,
+      useRegex,
+      maxResults,
+      isGitRepo: gitService.isRepo,
+    });
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get("/api/browse", async (req, res) => {
   try {
     const os = await import("node:os");
@@ -94,18 +114,10 @@ async function openWorkspace(dir: string) {
   return { root, selected: root, isRepo: gitService.isRepo };
 }
 
-async function gitignoreFn(root: string) {
-  try {
-    const gi = await fs.readFile(path.join(root, ".gitignore"), "utf8");
-    const ig = Ignore().add(gi);
-    return (rel: string) => { try { return ig.ignores(rel); } catch { return false; } };
-  } catch { return undefined; }
-}
-
 app.get("/api/tree", async (_req, res) => {
   const root = requireRoot(res); if (!root) return;
   try {
-    const { tree, truncated } = await buildTree(root, await gitignoreFn(root));
+    const { tree, truncated } = await buildTree(root, await createGitignoreMatcher(root));
     res.json({ root, tree, truncated });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });

@@ -35,5 +35,12 @@ export const api = {
   createDirectory: (p: string) => fetch("/api/fs/directory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: p }) }).then(j<{ path: string }>) ,
   deletePath: (p: string) => fetch("/api/fs?path=" + encodeURIComponent(p), { method: "DELETE" }).then(j<{ path: string; type: string }>) ,
   ocQuota: () => fetch("/api/opencode/quota").then(j<{ version: number; exportedAt: number; fromCache: boolean; cacheAgeSeconds: number; providers: Record<string, { status: string; percentRemaining?: number; label?: string; [k: string]: unknown }> }>),
+  search: (q: string, opts?: { matchCase?: boolean; useRegex?: boolean; maxResults?: number }) => {
+    const params = new URLSearchParams({ q });
+    if (opts?.matchCase) params.set("case", "1");
+    if (opts?.useRegex) params.set("regex", "1");
+    if (opts?.maxResults) params.set("maxResults", String(opts.maxResults));
+    return fetch("/api/search?" + params.toString()).then(j<{ query: string; totalMatches: number; filesCount: number; results: { path: string; matches: { line: number; column: number; text: string; matchLength: number }[] }[]; truncated: boolean }>);
+  },
 };
 export function wsUrl(p: string) { const proto = location.protocol === "https:" ? "wss:" : "ws:"; return proto + "//" + location.host + p; }

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { GitBranch, Circle, FolderOpen, RefreshCw, ChevronDown, Check, Loader2, AlertTriangle, Sparkles } from "lucide-react";
+import { GitBranch, Circle, FolderOpen, RefreshCw, ChevronDown, Check, Loader2, AlertTriangle, Sparkles, Search, X } from "lucide-react";
 import { useRepo } from "../../stores/repository";
 import { useGit } from "../../stores/git";
 import { useTerm } from "../../stores/terminal";
 import { useUI } from "../../stores/ui";
+import { useSearch } from "../../stores/search";
 import { api } from "../../lib/api";
 const colors: Record<string, string> = { connected: "#3fb950", working: "#d29922", idle: "#8b949e", disconnected: "#6e7681", starting: "#d29922", exited: "#f85149", error: "#f85149" };
 
@@ -12,6 +13,9 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
   const { branch, files, isRepo, state, refresh } = useGit();
   const { state: oc, error } = useTerm();
   const setAboutOpen = useUI((s) => s.setAboutOpen);
+  const setLeftTab = useUI((s) => s.setLeftTab);
+  const { query: searchQuery, setQuery: setSearchQuery, executeSearch, isSearching, clearSearch } = useSearch();
+
   const [open, setOpen] = useState(false);
   const [branches, setBranches] = useState<string[]>([]);
   const [current, setCurrent] = useState<string | null>(null);
@@ -19,6 +23,21 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
   const [branchError, setBranchError] = useState<string | null>(null);
   const [switching, setSwitching] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (searchQuery.trim()) {
+      setLeftTab("search");
+      executeSearch();
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearchSubmit();
+    }
+  };
 
   const fetchBranches = async () => {
     if (!isRepo) return;
@@ -142,13 +161,36 @@ export default function TopBar({ onOpen }: { onOpen: () => void }) {
               </div>
             )}
             <div className="px-3 py-1.5 text-[11px] text-[#7c6a5c] border-t border-[#36281e] bg-[#140f0c]">
-              Checkout via <code className="px-1 py-0.5 rounded bg-[#231a14] border border-[#36281e]">git checkout</code>. Uncommitted changes may block switching.
+              Uncommitted changes may block switching.
             </div>
           </div>
         )}
       </div>
-      <span className="text-xs px-1.5 py-0.5 rounded bg-[#2e2118] border border-[#36281e] text-[#d9cbbf]">{isRepo ? (state === "clean" ? "clean" : state + ` · ${files.length}`) : "no git"}</span>
-      <div className="flex-1" />
+      {/* Centered Search Bar */}
+      <div className="flex-1 max-w-[420px] mx-auto flex items-center justify-center">
+        <form onSubmit={handleSearchSubmit} className="relative w-full flex items-center">
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search code or text in workspace… (Press Enter)"
+            className="w-full pl-8 pr-8 py-1 rounded-md bg-[#140f0c] border border-[#36281e] text-xs text-[#ece1d8] outline-none focus:border-[#d97706] focus:ring-1 focus:ring-[#d97706]/40 placeholder:text-[#6e5a4c] transition-all shadow-inner"
+          />
+          <Search size={13} className="absolute left-2.5 text-[#9e8b7d] pointer-events-none" />
+          {isSearching ? (
+            <Loader2 size={13} className="absolute right-2.5 text-amber-400 animate-spin" />
+          ) : searchQuery ? (
+            <button
+              type="button"
+              onClick={() => clearSearch()}
+              className="absolute right-2 text-[#9e8b7d] hover:text-[#ece1d8] p-0.5 rounded transition-colors"
+              title="Clear Search"
+            >
+              <X size={13} />
+            </button>
+          ) : null}
+        </form>
+      </div>
       <span className="flex items-center gap-1.5 text-xs text-[#c2ab99]" title={error ?? oc}><Circle size={9} fill={colors[oc] ?? "#f85149"} color={colors[oc] ?? "#f85149"} />OpenCode {oc === "error" && error?.toLowerCase().includes("not found") ? "not found — install first" : oc}</span>
       <button onClick={onOpen} className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#2e2118] border border-[#36281e] hover:bg-[#4a3627] text-[#ece1d8]"><FolderOpen size={13} />Open</button>
       <button onClick={() => { useRepo.getState().load(); useGit.getState().refresh(); }} className="p-1.5 rounded hover:bg-[#2e2118] text-[#c2ab99] hover:text-[#ece1d8]" title="Refresh"><RefreshCw size={13} /></button>

@@ -6,6 +6,7 @@ import { useRepo } from "../../stores/repository";
 import { useEditor } from "../../stores/editor";
 import { useGit } from "../../stores/git";
 import { useUI } from "../../stores/ui";
+import { useSearch } from "../../stores/search";
 import ImageViewer, { isImageFile } from "./ImageViewer";
 import MarkdownPreview, { isMarkdownFile } from "./MarkdownPreview";
 
@@ -102,10 +103,40 @@ export default function EditorPanel() {
   const [showIndent, setShowIndent] = useState(false);
   const [tabMenu, setTabMenu] = useState<{ x: number; y: number; file: string | null } | null>(null);
 
+  const jumpTarget = useSearch((s) => s.jumpTarget);
+
   const getActiveEditor = useCallback(() => {
     if (mode === "diff") return diffModifiedRef.current;
     return editorRef.current;
   }, [mode]);
+
+  // Jump to target line & column requested by Search Panel
+  useEffect(() => {
+    if (!jumpTarget || !selectedFile) return;
+    if (jumpTarget.path !== selectedFile) return;
+    const e = getActiveEditor();
+    if (!e) return;
+
+    const timer = setTimeout(() => {
+      try {
+        e.revealLineInCenter(jumpTarget.line);
+        const col = jumpTarget.column || 1;
+        const len = jumpTarget.matchLength || 0;
+        e.setPosition({ lineNumber: jumpTarget.line, column: col });
+        if (len > 0) {
+          e.setSelection({
+            startLineNumber: jumpTarget.line,
+            startColumn: col,
+            endLineNumber: jumpTarget.line,
+            endColumn: col + len,
+          });
+        }
+        e.focus();
+      } catch {}
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [jumpTarget, selectedFile, mode, getActiveEditor]);
 
   const clearDecorations = useCallback(() => {
     const e = getActiveEditor();

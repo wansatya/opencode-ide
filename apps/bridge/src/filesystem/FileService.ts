@@ -1,6 +1,19 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { execFile as execFileCb } from "node:child_process";
+import { promisify } from "node:util";
+import Ignore from "ignore";
+
+const execFileP = promisify(execFileCb);
+
+export async function createGitignoreMatcher(root: string) {
+  try {
+    const gi = await fs.readFile(path.join(root, ".gitignore"), "utf8");
+    const ig = Ignore().add(gi);
+    return (rel: string) => { try { return ig.ignores(rel); } catch { return false; } };
+  } catch { return undefined; }
+}
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -211,3 +224,245 @@ export function flattenPaths(nodes: FileNode[]): string[] {
   }
   return out;
 }
+
+export type SearchMatch = {
+  line: number;
+  column: number;
+  text: string;
+  matchLength: number;
+};
+
+export type SearchFileResult = {
+  path: string;
+  matches: SearchMatch[];
+};
+
+export type SearchOptions = {
+  matchCase?: boolean;
+  useRegex?: boolean;
+  maxResults?: number;
+  isGitRepo?: boolean;
+};
+
+export async function searchWorkspace(
+  workspaceRoot: string,
+  query: string,
+  options: SearchOptions = {}
+): Promise<{
+  query: string;
+  totalMatches: number;
+  filesCount: number;
+  results: SearchFileResult[];
+  truncated: boolean;
+}> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return { query: "", totalMatches: 0, filesCount: 0, results: [], truncated: false };
+  }
+
+  const matchCase = !!options.matchCase;
+  const useRegex = !!options.useRegex;
+  const maxResults = options.maxResults ?? 500;
+  const rootAbs = path.resolve(workspaceRoot);
+
+  // Attempt git grep if workspace is a git repo
+  if (options.isGitRepo) {
+    try {
+      const gitArgs = [
+        "grep",
+        "-n",
+        "-I",
+        "--full-name",
+        matchCase ? "--no-ignore-case" : "-i",
+        useRegex ? "-E" : "-F",
+        "-e",
+        trimmed,
+      ];
+      const { stdout } = await execFileP("git", gitArgs, {
+        cwd: rootAbs,
+        maxBuffer: 10 * 1024 * 1024,
+      });
+
+      const lines = stdout.split("\n");
+      const resultsMap = new Map<string, SearchMatch[]>();
+      let totalMatches = 0;
+      let truncated = false;
+
+      for (const line of lines) {
+        if (!line) continue;
+        // Output format: relative/file/path:lineNum:lineContent
+        const firstColon = line.indexOf(":");
+        if (firstColon === -1) continue;
+        const secondColon = line.indexOf(":", firstColon + 1);
+        if (secondColon === -1) continue;
+
+        const relPath = line.substring(0, firstColon);
+        const lineNumStr = line.substring(firstColon + 1, secondColon);
+        const lineNum = Number(lineNumStr);
+        if (!lineNum || isNaN(lineNum)) continue;
+
+        const lineText = line.substring(secondColon + 1);
+
+        // Find match column
+        let col = 1;
+        let matchLength = trimmed.length;
+        if (useRegex) {
+          try {
+            const re = new RegExp(trimmed, matchCase ? "" : "i");
+            const m = re.exec(lineText);
+            if (m) {
+              col = m.index + 1;
+              matchLength = m[0].length;
+            }
+          } catch {}
+        } else {
+          const idx = matchCase
+            ? lineText.indexOf(trimmed)
+            : lineText.toLowerCase().indexOf(trimmed.toLowerCase());
+          if (idx !== -1) col = idx + 1;
+        }
+
+        if (totalMatches >= maxResults) {
+          truncated = true;
+          break;
+        }
+
+        if (!resultsMap.has(relPath)) {
+          resultsMap.set(relPath, []);
+        }
+        resultsMap.get(relPath)!.push({
+          line: lineNum,
+          column: col,
+          text: lineText,
+          matchLength,
+        });
+        totalMatches++;
+      }
+
+      const resultsList: SearchFileResult[] = Array.from(resultsMap.entries()).map(
+        ([p, matches]) => ({ path: p, matches })
+      );
+
+      return {
+        query: trimmed,
+        totalMatches,
+        filesCount: resultsList.length,
+        results: resultsList,
+        truncated,
+      };
+    } catch (e: any) {
+      // git grep exit code 1 means no matches found
+      if (e.code === 1 && typeof e.stdout === "string" && e.stdout.trim() === "") {
+        return { query: trimmed, totalMatches: 0, filesCount: 0, results: [], truncated: false };
+      }
+      // If error wasn't code 1 (no match), fall back to manual directory scanner below
+    }
+  }
+
+  // Fallback: Node.js file system scanner
+  const resultsMap = new Map<string, SearchMatch[]>();
+  let totalMatches = 0;
+  let truncated = false;
+  const gitignoreMatcher = await createGitignoreMatcher(rootAbs);
+
+  let searchRegex: RegExp | null = null;
+  if (useRegex) {
+    try {
+      searchRegex = new RegExp(trimmed, matchCase ? "g" : "gi");
+    } catch {
+      return { query: trimmed, totalMatches: 0, filesCount: 0, results: [], truncated: false };
+    }
+  }
+
+  async function scanDir(dirAbs: string, dirRel: string, depth: number) {
+    if (truncated || depth > 10) return;
+    let entries;
+    try {
+      entries = await fs.readdir(dirAbs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const e of entries) {
+      if (truncated) break;
+      if (DEFAULT_IGNORES.has(e.name)) continue;
+      if (e.name.startsWith(".") && e.isDirectory() && !DOT_DIR_ALLOW.has(e.name)) continue;
+      const rel = dirRel ? `${dirRel}/${e.name}` : e.name;
+      if (gitignoreMatcher && gitignoreMatcher(rel)) continue;
+      if (e.isSymbolicLink()) continue;
+
+      const fullAbs = path.join(dirAbs, e.name);
+
+      if (e.isDirectory()) {
+        await scanDir(fullAbs, rel, depth + 1);
+      } else if (e.isFile()) {
+        try {
+          const stat = await fs.stat(fullAbs);
+          if (stat.size > 2 * 1024 * 1024) continue; // Skip files > 2MB
+          if (await isBinary(fullAbs)) continue;
+
+          const content = await fs.readFile(fullAbs, "utf8");
+          const lines = content.split("\n");
+
+          for (let i = 0; i < lines.length; i++) {
+            const lineText = lines[i];
+            if (useRegex && searchRegex) {
+              searchRegex.lastIndex = 0;
+              let match: RegExpExecArray | null;
+              while ((match = searchRegex.exec(lineText)) !== null) {
+                if (totalMatches >= maxResults) {
+                  truncated = true;
+                  break;
+                }
+                if (!resultsMap.has(rel)) resultsMap.set(rel, []);
+                resultsMap.get(rel)!.push({
+                  line: i + 1,
+                  column: match.index + 1,
+                  text: lineText,
+                  matchLength: match[0].length,
+                });
+                totalMatches++;
+                if (match[0].length === 0) break; // prevent infinite loop on empty match
+              }
+            } else {
+              const target = matchCase ? trimmed : trimmed.toLowerCase();
+              const source = matchCase ? lineText : lineText.toLowerCase();
+              let idx = source.indexOf(target);
+              while (idx !== -1) {
+                if (totalMatches >= maxResults) {
+                  truncated = true;
+                  break;
+                }
+                if (!resultsMap.has(rel)) resultsMap.set(rel, []);
+                resultsMap.get(rel)!.push({
+                  line: i + 1,
+                  column: idx + 1,
+                  text: lineText,
+                  matchLength: trimmed.length,
+                });
+                totalMatches++;
+                idx = source.indexOf(target, idx + target.length);
+              }
+            }
+            if (truncated) break;
+          }
+        } catch {}
+      }
+    }
+  }
+
+  await scanDir(rootAbs, "", 0);
+
+  const resultsList: SearchFileResult[] = Array.from(resultsMap.entries()).map(
+    ([p, matches]) => ({ path: p, matches })
+  );
+
+  return {
+    query: trimmed,
+    totalMatches,
+    filesCount: resultsList.length,
+    results: resultsList,
+    truncated,
+  };
+}
+

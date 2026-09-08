@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from "react";
+import { FolderTree, Search } from "lucide-react";
 import TopBar from "./components/layout/TopBar";
 import StatusBar from "./components/layout/StatusBar";
 import RepositoryPanel from "./components/repository/RepositoryPanel";
+import SearchPanel from "./components/search/SearchPanel";
 import EditorPanel from "./components/editor/EditorPanel";
 import TerminalPanel from "./components/terminal/TerminalPanel";
 import { RepositoryPicker, QuickOpen, CommandPalette, AboutDialog } from "./components/common/Dialogs";
@@ -14,7 +16,7 @@ import { wsUrl } from "./lib/api";
 
 export default function App() {
   const [picker, setPicker] = useState(false);
-  const { leftW, rightW, setLeft, setRight, showLeft, showRight } = useUI();
+  const { leftW, rightW, setLeft, setRight, showLeft, showRight, leftTab, setLeftTab } = useUI();
   const drag = useRef<"l" | "r" | null>(null);
 
   useEffect(() => {
@@ -108,7 +110,39 @@ export default function App() {
     <div className="h-full flex flex-col">
       <TopBar onOpen={() => setPicker(true)} />
       <div className="flex-1 flex min-h-0">
-        {showLeft && <div style={{ width: leftW }} className="border-r border-[#36281e] bg-[#1a130f] shrink-0 overflow-hidden"><RepositoryPanel /></div>}
+        {showLeft && (
+          <div style={{ width: leftW }} className="border-r border-[#36281e] bg-[#1a130f] shrink-0 overflow-hidden flex flex-col h-full">
+            {/* Left Sidebar Tab Header */}
+            <div className="flex border-b border-[#36281e] bg-[#140f0c] px-2 pt-1.5 shrink-0 gap-1 text-xs">
+              <button
+                onClick={() => setLeftTab("repository")}
+                className={`px-2.5 py-1 rounded-t border-b-2 font-medium flex items-center gap-1.5 transition-colors ${
+                  leftTab === "repository"
+                    ? "border-amber-500 text-amber-300 bg-[#1a130f]"
+                    : "border-transparent text-[#9e8b7d] hover:text-[#ece1d8]"
+                }`}
+              >
+                <FolderTree size={13} />
+                <span>Files</span>
+              </button>
+              <button
+                onClick={() => setLeftTab("search")}
+                className={`px-2.5 py-1 rounded-t border-b-2 font-medium flex items-center gap-1.5 transition-colors ${
+                  leftTab === "search"
+                    ? "border-amber-500 text-amber-300 bg-[#1a130f]"
+                    : "border-transparent text-[#9e8b7d] hover:text-[#ece1d8]"
+                }`}
+              >
+                <Search size={13} />
+                <span>Search</span>
+              </button>
+            </div>
+            {/* Panel View */}
+            <div className="flex-1 min-h-0">
+              {leftTab === "repository" ? <RepositoryPanel /> : <SearchPanel />}
+            </div>
+          </div>
+        )}
         <div onMouseDown={() => (drag.current = "l")} className="w-1 cursor-col-resize hover:bg-[#d97706] shrink-0" />
         <div className="flex-1 min-w-[400px] min-h-0 bg-[#140f0c] relative"><EditorPanel /></div>
         <div onMouseDown={() => (drag.current = "r")} className="w-1 cursor-col-resize hover:bg-[#d97706] shrink-0" />
