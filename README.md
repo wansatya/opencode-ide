@@ -114,4 +114,4 @@ opencode-cockpit/
 
 ## License
 
-MIT — see `LICENSE`.
+MIT — see [LICENSE](LICENSE).
